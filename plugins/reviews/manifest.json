@@ -1,0 +1,12 @@
+{
+  "name": "Product Reviews",
+  "version": "1.0.0",
+  "url": "http://localhost:3003",
+  "description": "Product review and rating system",
+  "extensionPoints": [
+    { "type": "product.detail.tabs", "label": "Reviews", "path": "/product-reviews", "priority": 70 },
+    { "type": "product.detail.info", "label": "Rating", "path": "/product-rating-badge", "priority": 5 },
+    { "type": "product.list.filters", "label": "Rating", "filterKey": "rating", "filterType": "number", "priority": 20 },
+    { "type": "menu.main", "label": "Reviews", "icon": "star", "path": "/", "priority": 90 }
+  ]
+}
