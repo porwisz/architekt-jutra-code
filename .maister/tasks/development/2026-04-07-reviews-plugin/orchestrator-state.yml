@@ -1,0 +1,95 @@
+orchestrator:
+  started_phase: phase-1
+  completed_phases: [phase-1, phase-2, phase-4, phase-5, phase-6, phase-7, phase-8, phase-14]
+  failed_phases: []
+  auto_fix_attempts:
+    phase-1: 0
+    phase-2: 0
+    phase-5: 0
+    phase-7: 0
+    phase-8: 0
+    phase-11: 0
+  options:
+    spec_audit_enabled: true
+    skip_test_suite: true
+    e2e_enabled: true
+    user_docs_enabled: true
+    code_review_enabled: true
+    pragmatic_review_enabled: true
+    reality_check_enabled: true
+    production_check_enabled: true
+  task_ids: {}
+  created: "2026-04-07T00:00:00Z"
+  updated: "2026-04-07T00:00:00Z"
+  task_path: .maister/tasks/development/2026-04-07-reviews-plugin
+
+task:
+  title: "Reviews Plugin Implementation"
+  description: "Implement a new 'reviews' plugin for the existing microkernel (plugin-based) Spring Boot platform. The plugin adds product review and rating functionality: individual reviews stored as plugin_objects, per-product rating summaries in pluginData, four extension points (product.detail.tabs, product.detail.info, product.list.filters, menu.main), and no custom backend Java code for v1."
+  status: completed
+  tags: [plugin, reviews, microkernel, spring-boot, frontend]
+  priority: medium
+
+task_context:
+  risk_level: low
+  clarifications_resolved: true
+  scope_expanded: null
+  architecture_decision: null
+  task_characteristics:
+    has_reproducible_defect: false
+    modifies_existing_code: false
+    creates_new_entities: true
+    involves_data_operations: true
+    ui_heavy: true
+  research_reference:
+    path: .maister/tasks/research/2026-04-07-reviews-plugin
+    research_question: "How should a new 'reviews' plugin be designed and implemented for the existing microkernel-based Spring Boot platform?"
+    research_type: mixed
+    confidence_level: high
+  phase_summaries:
+    research:
+      summary: "Hybrid storage strategy: plugin_objects for individual reviews + pluginData for rating aggregates. No custom backend Java code needed for v1. Four extension points: product.detail.tabs, product.detail.info, product.list.filters, menu.main. Plugin ID: 'reviews', port 3003. No DB migration needed — uses existing plugin_objects and products.plugin_data infrastructure."
+      key_findings:
+        - "plugin_objects with objectType='review', entityType=PRODUCT is the right storage for individual reviews"
+        - "pluginData is the ONLY mechanism to drive product.list.filters extension point"
+        - "setData is full-replace — fetch-compute-write pattern required for aggregates"
+        - "Hard limit of 1000 plugin_objects per listing call"
+        - "filterType: 'number' uses eq operator only — cannot do min-rating filter natively"
+        - "No custom backend endpoints needed for v1"
+        - "Migration 008 available if dedicated table ever needed"
+      recommended_approach: "Build frontend-only plugin using SDK exclusively. Hybrid storage: plugin_objects + pluginData aggregate. Four extension points per manifest.json design in research report."
+    codebase_analysis:
+      key_files: []
+      primary_language: null
+      summary: null
+    clarifications: []
+    gap_analysis:
+      integration_points:
+        - "menu.main extension point (ReviewsAdmin)"
+        - "product.detail.tabs extension point (ProductReviewsTab)"
+        - "product.detail.info extension point (ProductRatingBadge)"
+        - "product.list.filters extension point (host-rendered, filterKey=rating)"
+        - "plugin_objects API for individual reviews"
+        - "pluginData API for per-product rating aggregate"
+      summary: "Pure greenfield addition — plugins/reviews/ directory does not exist. All 12 files absent. No existing code modified. ui_heavy=true activates Phase 4 (UI mockups) and sets e2e/user_docs defaults. Three non-obvious requirements: filter label must be 'Rating' (eq semantics), admin page must recalculate pluginData using review.entityId, and Number() cast required for productId in SDK calls."
+    scope_clarifications:
+      scope_expanded: null
+      summary: null
+    ui_mockups:
+      components_designed:
+        - ReviewsAdmin (menu.main)
+        - ProductReviewsTab (product.detail.tabs)
+        - ProductRatingBadge (product.detail.info)
+      summary: "Three pages mockuped. ReviewsAdmin: tc-table with 7 cols, status filter dropdown, context-sensitive approve/reject buttons. ProductReviewsTab: two sections — review list (5 cols, no actions) + submit form below. ProductRatingBadge: compact badge returning null while loading, three visual states (success/neutral/danger by avg rating)."
+    specification:
+      summary: "12-file reviews plugin using platform SDK only. No custom backend Java. ReviewsAdmin (all reviews + client-side status filter + approve/reject + aggregate recalc via review.entityId), ProductReviewsTab (APPROVED-only list + collapsing submit form + aggregate update), ProductRatingBadge (compact null-while-loading badge, 3 rating tiers), product.list.filters (manifest-only, filterKey=rating, eq semantics, label=Rating). 2 backend test classes (8 scenarios total). 10 reuse opportunities from warehouse plugin."
+    architecture_decision:
+      decision: null
+      summary: null
+
+verification_context:
+  last_status: null
+  issues_found: []
+  fixes_applied: []
+  decisions_made: []
+  reverify_count: 0
