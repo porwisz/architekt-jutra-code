@@ -1,0 +1,51 @@
+orchestrator:
+  started_phase: phase-1
+  completed_phases: [phase-1]
+  failed_phases: []
+  auto_fix_attempts:
+    phase-1: 0
+    phase-2: 0
+    phase-3: 0
+    phase-5: 0
+  options:
+    brainstorming_enabled: false
+    design_enabled: false
+  created: "2026-04-07T00:00:00Z"
+  updated: "2026-04-07T00:00:00Z"
+  task_path: .maister/tasks/research/2026-04-07-reviews-plugin
+
+task:
+  title: "Reviews Plugin for Microkernel Platform"
+  description: "Research how to design and implement a new 'reviews' plugin for the existing microkernel (plugin-based) Spring Boot platform. The plugin adds review functionality as extra capability to the core system."
+  status: in_progress
+  tags: [plugin, reviews, microkernel, spring-boot]
+  priority: medium
+
+research_context:
+  research_type: mixed
+  research_question: "How should a new 'reviews' plugin be designed and implemented for the existing microkernel-based Spring Boot platform?"
+  scope:
+    included:
+      - Existing plugin architecture and patterns
+      - Current codebase structure (plugins directory, warehouse plugin, box-size plugin)
+      - Spring Boot plugin integration patterns
+      - Reviews domain model (what a review entails)
+      - Database migration strategy for new plugin
+    excluded:
+      - Non-plugin approaches
+      - External review systems (Trustpilot, etc.)
+    constraints:
+      - Must follow existing microkernel pattern
+      - Must use Java 25, Spring Boot 4.0.5, PostgreSQL
+      - Must follow project standards in .maister/docs/standards/
+  methodology: []
+  sources: []
+  confidence_level: high
+  gathering_strategy:
+    categories: [plugin-architecture, domain-patterns, frontend-plugin-sdk, migration-and-testing]
+    count: 4
+    source: planner
+  phase_summaries:
+    phase-1:
+      summary: "Hybrid storage strategy identified (plugin_objects for individual reviews + pluginData for rating aggregate). No custom backend code needed for v1 — all via SDK. Four extension points: tabs, info badge, list filter, admin menu. Next migration number is 008 (reserved). High confidence across all findings."
+      steps_completed: [initialize, plan, gather, synthesize]
