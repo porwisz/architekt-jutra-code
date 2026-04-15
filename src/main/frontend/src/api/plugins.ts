@@ -9,6 +9,7 @@ export interface ExtensionPoint {
   priority: number;
   filterKey?: string;
   filterType?: "boolean" | "string" | "number";
+  filterOperator?: string;
 }
 
 export interface PluginResponse {

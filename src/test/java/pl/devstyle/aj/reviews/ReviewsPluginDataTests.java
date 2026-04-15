@@ -121,11 +121,12 @@ class ReviewsPluginDataTests {
     }
 
     @Test
-    void productListFilter_byRating_returnsMatchingProducts() throws Exception {
+    void productListFilter_byRating_gte_returnsProductsAtOrAboveThreshold() throws Exception {
         createAndSavePlugin();
         var category = createAndSaveCategory("Electronics");
         var productA = createAndSaveProduct("Product Alpha", category);
         var productB = createAndSaveProduct("Product Beta", category);
+        var productC = createAndSaveProduct("Product Gamma", category);
 
         mockMvc.perform(put("/api/plugins/{pluginId}/products/{productId}/data",
                         "reviews", productA.getId())
@@ -139,10 +140,17 @@ class ReviewsPluginDataTests {
                         .content(objectMapper.writeValueAsString(Map.of("rating", 3.0, "count", 5))))
                 .andExpect(status().isOk());
 
+        mockMvc.perform(put("/api/plugins/{pluginId}/products/{productId}/data",
+                        "reviews", productC.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("rating", 4.0, "count", 8))))
+                .andExpect(status().isOk());
+
         mockMvc.perform(get("/api/products")
-                        .param("pluginFilter", "reviews:rating:eq:4.5"))
+                        .param("pluginFilter", "reviews:rating:gte:4"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id == " + productA.getId() + ")]").exists())
-                .andExpect(jsonPath("$[?(@.id == " + productB.getId() + ")]").doesNotExist());
+                .andExpect(jsonPath("$[?(@.id == " + productB.getId() + ")]").doesNotExist())
+                .andExpect(jsonPath("$[?(@.id == " + productC.getId() + ")]").exists());
     }
 }

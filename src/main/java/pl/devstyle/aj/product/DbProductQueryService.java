@@ -135,8 +135,8 @@ public class DbProductQueryService {
         if (!jsonPath.matches("^[a-zA-Z0-9_.-]+$")) {
             throw new IllegalArgumentException("Invalid jsonPath: must contain only alphanumeric characters, underscores, dots, or hyphens");
         }
-        if (!op.matches("eq|gt|lt|exists|bool")) {
-            throw new IllegalArgumentException("Unsupported operator: " + op + ". Supported: eq, gt, lt, exists, bool");
+        if (!op.matches("eq|gte|gt|lt|exists|bool")) {
+            throw new IllegalArgumentException("Unsupported operator: " + op + ". Supported: eq, gte, gt, lt, exists, bool");
         }
         if (val == null && !op.equals("exists")) {
             throw new IllegalArgumentException("Operator '" + op + "' requires a value");
@@ -148,6 +148,13 @@ public class DbProductQueryService {
 
         return switch (op) {
             case "eq" -> jsonExtract.eq(val);
+            case "gte" -> {
+                try {
+                    yield jsonExtract.cast(Double.class).ge(Double.parseDouble(val));
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Value must be numeric for 'gte' operator: " + val);
+                }
+            }
             case "gt" -> {
                 try {
                     yield jsonExtract.cast(Double.class).gt(Double.parseDouble(val));
@@ -164,7 +171,7 @@ public class DbProductQueryService {
             }
             case "exists" -> DSL.condition("jsonb_exists(plugin_data->?, ?)", pluginId, jsonPath);
             case "bool" -> jsonExtract.cast(Boolean.class).eq(Boolean.parseBoolean(val));
-            default -> throw new IllegalArgumentException("Unsupported operator: " + op);
+            default -> throw new IllegalArgumentException("Unsupported operator: " + op + ". Supported: eq, gte, gt, lt, exists, bool");
         };
     }
 }
