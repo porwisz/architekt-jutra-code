@@ -1,0 +1,127 @@
+orchestrator:
+  started_phase: phase-1
+  completed_phases:
+    - phase-1
+    - phase-2
+    - phase-5
+    - phase-6
+    - phase-7
+    - phase-8
+    - phase-10
+    - phase-11
+  failed_phases: []
+  auto_fix_attempts:
+    phase-1: 0
+    phase-2: 0
+    phase-5: 0
+    phase-7: 0
+    phase-8: 0
+    phase-11: 0
+  options:
+    spec_audit_enabled: true
+    skip_test_suite: true
+    e2e_enabled: false
+    user_docs_enabled: false
+    code_review_enabled: false
+    pragmatic_review_enabled: false
+    reality_check_enabled: false
+    production_check_enabled: false
+  created: "2026-05-11T00:00:00Z"
+  updated: "2026-05-11T00:00:00Z"
+  task_path: .maister/tasks/development/2026-05-11-ai-product-analyzer-plugin
+  task_ids:
+    phase-1: "1"
+    phase-2: "2"
+    phase-5: "3"
+    phase-6: "4"
+    phase-7: "5"
+    phase-8: "6"
+    phase-10: "7"
+    phase-11: "8"
+    phase-14: "9"
+  task_context:
+    risk_level: low
+    clarifications_resolved: true
+    scope_expanded: false
+    architecture_decision: "Next.js + BAML + gpt-4o-mini via LiteLLM; LLM-only price analysis; product.detail.tabs extension point"
+    task_characteristics:
+      has_reproducible_defect: false
+      modifies_existing_code: false
+      creates_new_entities: true
+      involves_data_operations: true
+      ui_heavy: true
+    research_reference:
+      path: null
+      research_question: null
+      research_type: null
+      confidence_level: null
+    phase_summaries:
+      research:
+        summary: null
+        key_findings: []
+        recommended_approach: null
+      codebase_analysis:
+        key_files:
+          - plugins/ai-description/baml_src/clients.baml
+          - plugins/ai-description/baml_src/main.baml
+          - plugins/ai-description/src/pages/api/generate.ts
+          - plugins/ai-description/src/domain.ts
+          - plugins/ai-description/manifest.json
+          - plugins/ai-description/package.json
+          - plugins/server-sdk.ts
+          - plugins/sdk.ts
+          - litellm/config.yaml
+          - compose.yml
+        primary_language: TypeScript
+        summary: "A near-identical precedent plugin (ai-description) exists with the exact required tech stack (Next.js + BAML + LiteLLM); port 3011 is confirmed available; risk level low."
+      clarifications: []
+      gap_analysis:
+        integration_points:
+          - "Host product API via server-sdk.ts (name, description, price, category.name)"
+          - "Plugin object storage: thisPlugin.objects.save('analysis', productId, data, { entityType: 'PRODUCT' })"
+          - "LiteLLM proxy at http://localhost:4000/v1 — all LLM calls routed here"
+          - "Langfuse observability automatic via LiteLLM callbacks"
+          - "product.detail.tabs extension point"
+        summary: "Plugin is a structural clone of ai-description with a 3-dimension BAML function; key open decisions are price analysis scope (LLM-only vs. in-app category baseline) and model selection."
+      scope_clarifications:
+        scope_expanded: false
+        summary: "Price analysis: LLM general knowledge only (no external data); model: gpt-4o-mini; UI mockups skipped (template sufficient)"
+      ui_mockups:
+        components_designed: []
+        summary: null
+      specification:
+        summary: "New ai-product-analysis plugin on port 3011 with BAML AnalyzeProduct function, product.detail.tabs + product.detail.info extension points, gpt-4o-mini via LiteLLM; 6 files reused from ai-description, 7 new files; 10 core requirements, 7 success criteria"
+      architecture_decision:
+        decision: null
+        summary: null
+  project_context:
+    project_doc_paths:
+      - .maister/docs/project/tech-stack.md
+      - .maister/docs/project/architecture.md
+
+task:
+  title: AI Product Analyzer Plugin
+  description: |
+    Create a plugin integrating with the platform backend that:
+    - Uses BAML for LLM invocation with structured data formats
+    - Routes all queries through LiteLLM
+    - Automatically checks product description correctness
+    - Verifies relevance of assigned category
+    - Evaluates whether product price deviates significantly from market norms
+    - Available on port 3011
+    - Verify LiteLLM panel shows communication in logs
+  status: completed
+  tags:
+    - plugin
+    - ai
+    - baml
+    - litellm
+    - product-analysis
+  priority: high
+
+verification_context:
+  last_status: null
+  issues_found: []
+  fixes_applied: []
+  decisions_made: []
+  reverify_count: 0

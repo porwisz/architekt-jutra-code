@@ -224,6 +224,7 @@ services:
       - litellm/.env
     environment:
       DATABASE_URL: postgresql://litellm:litellm@litellm-db:5432/litellm
+      LITELLM_DROP_PARAMS: "true"
     command: ["--config", "/app/config.yaml", "--port", "4000"]
     depends_on:
       litellm-db:

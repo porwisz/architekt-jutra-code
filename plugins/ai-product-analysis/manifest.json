@@ -1,0 +1,10 @@
+{
+  "name": "AI Product Analysis",
+  "version": "1.0.0",
+  "url": "http://localhost:3011",
+  "description": "AI-powered product quality analysis across three dimensions",
+  "extensionPoints": [
+    { "type": "product.detail.tabs", "label": "AI Analysis", "path": "/product-tab", "priority": 60 },
+    { "type": "product.detail.info", "label": "AI Analysis", "path": "/product-info-badge", "priority": 20 }
+  ]
+}
