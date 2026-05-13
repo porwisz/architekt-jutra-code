@@ -1,8 +1,0 @@
-{
-  "/_app": "pages/_app.js",
-  "/_error": "pages/_error.js",
-  "/_document": "pages/_document.js",
-  "/product-tab": "pages/product-tab.js",
-  "/product-info-badge": "pages/product-info-badge.js",
-  "/api/analyze": "pages/api/analyze.js"
-}
