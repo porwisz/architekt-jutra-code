@@ -11,12 +11,10 @@ import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.support.RestClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 import pl.devstyle.aj.mcp.client.AjApiClient;
-import pl.devstyle.aj.mcp.exception.McpToolException;
-import pl.devstyle.aj.mcp.security.AccessTokenHolder;
+import pl.devstyle.aj.mcp.security.ExchangedTokenHolder;
 
 import java.io.IOException;
 
@@ -26,8 +24,7 @@ public class RestClientConfig {
     private static final Logger LOG = LoggerFactory.getLogger(RestClientConfig.class);
 
     @Bean
-    public RestClient ajRestClient(@Value("${aj.backend.url}") String backendUrl,
-                                   AccessTokenHolder accessTokenHolder) {
+    public RestClient ajRestClient(@Value("${aj.backend.url}") String backendUrl) {
         var requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(5_000);
         requestFactory.setReadTimeout(30_000);
@@ -35,7 +32,7 @@ public class RestClientConfig {
         return RestClient.builder()
                 .baseUrl(backendUrl)
                 .requestFactory(requestFactory)
-                .requestInterceptor(new JwtForwardingInterceptor(accessTokenHolder))
+                .requestInterceptor(new TokenBForwardingInterceptor())
                 .defaultStatusHandler(status -> status.is4xxClientError() || status.is5xxServerError(),
                         (request, response) -> {
                             int statusCode = response.getStatusCode().value();
@@ -43,14 +40,29 @@ public class RestClientConfig {
                             LOG.warn("Backend API error: {} {} - {}", statusCode, request.getURI(), body);
 
                             throw switch (statusCode) {
-                                case 400 -> McpToolException.validationError(body);
-                                case 401 -> McpToolException.apiError("Authentication required");
-                                case 403 -> McpToolException.apiError("Insufficient permissions");
-                                case 404 -> McpToolException.notFound(body);
-                                default -> McpToolException.apiError(
+                                case 400 -> pl.devstyle.aj.mcp.exception.McpToolException.validationError(body);
+                                case 401 -> {
+                                    LOG.warn("Backend rejected Token-B: {}", body);
+                                    yield pl.devstyle.aj.mcp.exception.McpToolException.apiError("Authentication required");
+                                }
+                                case 403 -> pl.devstyle.aj.mcp.exception.McpToolException.apiError("Insufficient permissions");
+                                case 404 -> pl.devstyle.aj.mcp.exception.McpToolException.notFound(body);
+                                default -> pl.devstyle.aj.mcp.exception.McpToolException.apiError(
                                         "Backend error (status %d). Please retry.".formatted(statusCode));
                             };
                         })
+                .build();
+    }
+
+    @Bean
+    public RestClient oauthRestClient(@Value("${aj.backend.url}") String backendUrl) {
+        var requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(5_000);
+        requestFactory.setReadTimeout(10_000);
+
+        return RestClient.builder()
+                .baseUrl(backendUrl)
+                .requestFactory(requestFactory)
                 .build();
     }
 
@@ -62,24 +74,21 @@ public class RestClientConfig {
     }
 
     /**
-     * Interceptor that forwards the JWT token from incoming MCP requests to the aj backend.
+     * Interceptor that reads Token-B from ExchangedTokenHolder (ThreadLocal)
+     * and forwards it to the backend. Both the tool handler and this interceptor
+     * run on the same MCP SDK thread (boundedElastic), so ThreadLocal works.
      */
-    public static class JwtForwardingInterceptor implements ClientHttpRequestInterceptor {
-
-        private final AccessTokenHolder accessTokenHolder;
-
-        public JwtForwardingInterceptor(AccessTokenHolder accessTokenHolder) {
-            this.accessTokenHolder = accessTokenHolder;
-        }
+    public static class TokenBForwardingInterceptor implements ClientHttpRequestInterceptor {
 
         @Override
         public ClientHttpResponse intercept(HttpRequest request, byte[] body,
                                             ClientHttpRequestExecution execution) throws IOException {
-            if (accessTokenHolder.hasAccessToken()) {
-                LOG.info("Forwarding Bearer token to backend: {} {}", request.getMethod(), request.getURI());
-                request.getHeaders().setBearerAuth(accessTokenHolder.getAccessToken());
+            String tokenB = ExchangedTokenHolder.get();
+            if (tokenB != null) {
+                LOG.debug("Forwarding Token-B to backend: {} {}", request.getMethod(), request.getURI());
+                request.getHeaders().setBearerAuth(tokenB);
             } else {
-                LOG.warn("No token to forward for backend call: {} {}", request.getMethod(), request.getURI());
+                LOG.warn("No Token-B available for backend call: {} {}", request.getMethod(), request.getURI());
             }
             return execution.execute(request, body);
         }

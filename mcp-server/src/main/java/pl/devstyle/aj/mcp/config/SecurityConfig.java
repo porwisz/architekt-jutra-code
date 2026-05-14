@@ -8,8 +8,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.client.RestClient;
 import pl.devstyle.aj.mcp.security.McpAuthenticationEntryPoint;
-import pl.devstyle.aj.mcp.security.McpJwtFilter;
+import pl.devstyle.aj.mcp.security.McpIntrospectionFilter;
+import pl.devstyle.aj.mcp.security.TokenExchangeClient;
 
 @Configuration
 @EnableWebSecurity
@@ -18,8 +20,39 @@ public class SecurityConfig {
     @Value("${aj.mcp.base-url}")
     private String mcpBaseUrl;
 
+    @Value("${aj.oauth.client-id}")
+    private String clientId;
+
+    @Value("${aj.oauth.client-secret}")
+    private String clientSecret;
+
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public McpAuthenticationEntryPoint mcpAuthenticationEntryPoint() {
+        return new McpAuthenticationEntryPoint(mcpBaseUrl + "/.well-known/oauth-protected-resource");
+    }
+
+    @Bean
+    public TokenExchangeClient tokenExchangeClient(RestClient oauthRestClient) {
+        return new TokenExchangeClient(oauthRestClient, clientId, clientSecret);
+    }
+
+    @Bean
+    public McpIntrospectionFilter mcpIntrospectionFilter(RestClient oauthRestClient,
+                                                         TokenExchangeClient tokenExchangeClient,
+                                                         McpAuthenticationEntryPoint mcpAuthenticationEntryPoint) {
+        return new McpIntrospectionFilter(
+                oauthRestClient,
+                tokenExchangeClient,
+                mcpAuthenticationEntryPoint,
+                clientId,
+                clientSecret
+        );
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           McpIntrospectionFilter mcpIntrospectionFilter,
+                                           McpAuthenticationEntryPoint mcpAuthenticationEntryPoint) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -30,10 +63,9 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(new McpAuthenticationEntryPoint(
-                                mcpBaseUrl + "/.well-known/oauth-protected-resource"))
+                        .authenticationEntryPoint(mcpAuthenticationEntryPoint)
                 )
-                .addFilterBefore(new McpJwtFilter(),
+                .addFilterBefore(mcpIntrospectionFilter,
                         UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

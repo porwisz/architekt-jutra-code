@@ -9,7 +9,6 @@ import pl.devstyle.aj.mcp.client.dto.CategoryResponse;
 import pl.devstyle.aj.mcp.client.dto.ProductResponse;
 
 import io.modelcontextprotocol.common.McpTransportContext;
-import pl.devstyle.aj.mcp.AjMcpApplication;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -47,7 +46,7 @@ class ToolCallIntegrationTests {
 
         var toolSpec = productService.buildToolListProducts();
 
-        assertThatCode(() -> toolSpec.callHandler().apply(McpTransportContext.create(Map.of(AjMcpApplication.TOKEN_KEY, "test-token")),
+        assertThatCode(() -> toolSpec.callHandler().apply(McpTransportContext.EMPTY,
                 new io.modelcontextprotocol.spec.McpSchema.CallToolRequest(
                         "aj_list_products", Map.of())))
                 .doesNotThrowAnyException();
@@ -64,7 +63,7 @@ class ToolCallIntegrationTests {
                 "sku", "LAP-001",
                 "categoryId", 1);
 
-        assertThatCode(() -> toolSpec.callHandler().apply(McpTransportContext.create(Map.of(AjMcpApplication.TOKEN_KEY, "test-token")),
+        assertThatCode(() -> toolSpec.callHandler().apply(McpTransportContext.EMPTY,
                 new io.modelcontextprotocol.spec.McpSchema.CallToolRequest(
                         "aj_add_product", args)))
                 .doesNotThrowAnyException();
@@ -76,7 +75,7 @@ class ToolCallIntegrationTests {
 
         var toolSpec = categoryService.buildToolListCategories();
 
-        assertThatCode(() -> toolSpec.callHandler().apply(McpTransportContext.create(Map.of(AjMcpApplication.TOKEN_KEY, "test-token")),
+        assertThatCode(() -> toolSpec.callHandler().apply(McpTransportContext.EMPTY,
                 new io.modelcontextprotocol.spec.McpSchema.CallToolRequest(
                         "aj_list_categories", Map.of())))
                 .doesNotThrowAnyException();
@@ -86,7 +85,7 @@ class ToolCallIntegrationTests {
     void listProducts_returnsWrappedResponse() {
         when(ajApiClient.listProducts(any())).thenReturn(List.of(sampleProduct));
 
-        var result = productService.listProducts("test-token", null);
+        var result = productService.listProducts(null);
 
         assertThat(result).containsKey("products");
         assertThat(result.get("products")).hasSize(1);
@@ -97,7 +96,7 @@ class ToolCallIntegrationTests {
     void listCategories_returnsWrappedResponse() {
         when(ajApiClient.listCategories()).thenReturn(List.of(sampleCategory));
 
-        var result = categoryService.listCategories("test-token");
+        var result = categoryService.listCategories();
 
         assertThat(result).containsKey("categories");
         assertThat(result.get("categories")).hasSize(1);

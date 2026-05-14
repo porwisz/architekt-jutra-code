@@ -4,12 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.modelcontextprotocol.json.McpJsonDefaults;
 import io.modelcontextprotocol.server.McpStatelessServerFeatures;
 import io.modelcontextprotocol.spec.McpSchema;
-import pl.devstyle.aj.mcp.AjMcpApplication;
-import pl.devstyle.aj.mcp.security.AccessTokenHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import pl.devstyle.aj.mcp.AjMcpApplication;
 import pl.devstyle.aj.mcp.client.AjApiClient;
+import pl.devstyle.aj.mcp.security.ExchangedTokenHolder;
 import pl.devstyle.aj.mcp.client.dto.CreateProductRequest;
 import pl.devstyle.aj.mcp.client.dto.ProductResponse;
 import pl.devstyle.aj.mcp.exception.McpToolException;
@@ -24,11 +24,9 @@ import java.util.Map;
 public class ProductService {
 
     private final AjApiClient ajApiClient;
-    private final AccessTokenHolder accessTokenHolder;
     private final ObjectMapper objectMapper;
 
-    public Map<String, List<ProductResponse>> listProducts(String token, String search) {
-        accessTokenHolder.setAccessToken(token);
+    public Map<String, List<ProductResponse>> listProducts(String search) {
         try {
             return Map.of("products", ajApiClient.listProducts(search));
         } catch (McpToolException ex) {
@@ -39,8 +37,7 @@ public class ProductService {
         }
     }
 
-    public ProductResponse addProduct(String token, Map<String, Object> arguments) {
-        accessTokenHolder.setAccessToken(token);
+    public ProductResponse addProduct(Map<String, Object> arguments) {
         try {
             String name = (String) arguments.get("name");
             String description = (String) arguments.get("description");
@@ -66,15 +63,16 @@ public class ProductService {
     public McpStatelessServerFeatures.SyncToolSpecification buildToolListProducts() {
         return McpStatelessServerFeatures.SyncToolSpecification.builder()
                 .callHandler((ctx, req) -> {
-                    var result = listProducts(
-                            (String) ctx.get(AjMcpApplication.TOKEN_KEY),
-                            (String) req.arguments().get("search"));
+                    ExchangedTokenHolder.set((String) ctx.get(AjMcpApplication.TOKEN_B_KEY));
                     try {
+                        var result = listProducts((String) req.arguments().get("search"));
                         String json = objectMapper.writeValueAsString(result);
                         return new McpSchema.CallToolResult(
                                 List.of(new McpSchema.TextContent(json)), false, result, null);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
+                    } finally {
+                        ExchangedTokenHolder.clear();
                     }
                 })
                 .tool(McpSchema.Tool.builder()
@@ -180,15 +178,16 @@ public class ProductService {
     public McpStatelessServerFeatures.SyncToolSpecification buildToolAddProduct() {
         return McpStatelessServerFeatures.SyncToolSpecification.builder()
                 .callHandler((ctx, req) -> {
-                    var result = addProduct(
-                            (String) ctx.get(AjMcpApplication.TOKEN_KEY),
-                            req.arguments());
+                    ExchangedTokenHolder.set((String) ctx.get(AjMcpApplication.TOKEN_B_KEY));
                     try {
+                        var result = addProduct(req.arguments());
                         String json = objectMapper.writeValueAsString(result);
                         return new McpSchema.CallToolResult(
                                 List.of(new McpSchema.TextContent(json)), false, result, null);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
+                    } finally {
+                        ExchangedTokenHolder.clear();
                     }
                 })
                 .tool(McpSchema.Tool.builder()

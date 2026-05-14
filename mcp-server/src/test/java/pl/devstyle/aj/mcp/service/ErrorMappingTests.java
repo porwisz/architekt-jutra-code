@@ -29,7 +29,7 @@ class ErrorMappingTests {
         when(ajApiClient.listProducts(any()))
                 .thenThrow(McpToolException.validationError("Invalid search parameter"));
 
-        assertThatThrownBy(() -> productService.listProducts("token", "bad"))
+        assertThatThrownBy(() -> productService.listProducts("bad"))
                 .isInstanceOf(McpToolException.class)
                 .satisfies(ex -> {
                     var mcpEx = (McpToolException) ex;
@@ -43,7 +43,7 @@ class ErrorMappingTests {
         when(ajApiClient.listProducts(any()))
                 .thenThrow(McpToolException.notFound("Resource not found"));
 
-        assertThatThrownBy(() -> productService.listProducts("token", null))
+        assertThatThrownBy(() -> productService.listProducts(null))
                 .isInstanceOf(McpToolException.class)
                 .satisfies(ex -> {
                     var mcpEx = (McpToolException) ex;
@@ -56,7 +56,7 @@ class ErrorMappingTests {
         when(ajApiClient.createProduct(any()))
                 .thenThrow(McpToolException.apiError("Backend error (status 500). Please retry."));
 
-        assertThatThrownBy(() -> productService.addProduct("token",
+        assertThatThrownBy(() -> productService.addProduct(
                 java.util.Map.of("name", "Test", "price", 10, "sku", "T-1", "categoryId", 1)))
                 .isInstanceOf(McpToolException.class)
                 .satisfies(ex -> {
@@ -71,7 +71,7 @@ class ErrorMappingTests {
         when(ajApiClient.listProducts(any()))
                 .thenThrow(new RuntimeException("Connection refused"));
 
-        assertThatThrownBy(() -> productService.listProducts("token", null))
+        assertThatThrownBy(() -> productService.listProducts(null))
                 .isInstanceOf(McpToolException.class)
                 .satisfies(ex -> {
                     var mcpEx = (McpToolException) ex;
@@ -86,7 +86,7 @@ class ErrorMappingTests {
         when(ajApiClient.listCategories())
                 .thenThrow(new RuntimeException("Timeout"));
 
-        assertThatThrownBy(() -> categoryService.listCategories("token"))
+        assertThatThrownBy(() -> categoryService.listCategories())
                 .isInstanceOf(McpToolException.class)
                 .satisfies(ex -> {
                     var mcpEx = (McpToolException) ex;
