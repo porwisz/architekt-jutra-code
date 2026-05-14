@@ -13,6 +13,11 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # --- MCP app (Spring Boot) ---
+# When running locally (no cloudflared), these defaults work out of the box.
+# When exposing publicly via cloudflared, set these env vars before running:
+export AJ_OAUTH_SERVER_URL=https://aj.cybernuta.eu
+export AJ_MCP_BASE_URL=https://architekt-jutra-mcp.cybernuta.eu
+
 echo "Starting MCP app..."
 cd mcp-server
 ./mvnw -q spring-boot:run &

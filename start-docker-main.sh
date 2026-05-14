@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
+export AJ_OAUTH_SERVER_URL=https://aj.cybernuta.eu
+export AJ_MCP_BASE_URL=https://architekt-jutra-mcp.cybernuta.eu
 cd "$(dirname "$0")"
 
 # --- Docker Compose ---

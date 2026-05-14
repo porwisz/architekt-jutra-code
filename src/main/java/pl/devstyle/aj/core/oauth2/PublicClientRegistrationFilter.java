@@ -68,7 +68,9 @@ public class PublicClientRegistrationFilter extends OncePerRequestFilter {
         Map<String, Object> requestBody = objectMapper.readValue(request.getInputStream(), Map.class);
 
         String clientName = (String) requestBody.get("client_name");
-        List<String> responseTypes = (List<String>) requestBody.get("response_types");
+        List<String> responseTypes = requestBody.get("response_types") != null
+                ? (List<String>) requestBody.get("response_types")
+                : List.of("code");
         List<String> grantTypes = (List<String>) requestBody.get("grant_types");
         List<String> redirectUris = (List<String>) requestBody.get("redirect_uris");
         String tokenEndpointAuthMethod = (String) requestBody.get("token_endpoint_auth_method");
