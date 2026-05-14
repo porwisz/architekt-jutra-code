@@ -53,7 +53,7 @@ function PluginFilterControl({
   function buildFilterString(val: string | boolean | number | undefined): string | undefined {
     if (val === undefined || val === "" || val === false) return undefined;
 
-    const operator = filter.filterType === "boolean" ? "bool" : "eq";
+    const operator = filter.filterType === "boolean" ? "bool" : (filter.filterOperator ?? "eq");
     return `${filter.pluginId}:${filter.filterKey}:${operator}:${val}`;
   }
 
