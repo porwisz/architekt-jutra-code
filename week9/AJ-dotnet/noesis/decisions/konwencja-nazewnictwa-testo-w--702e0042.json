@@ -1,0 +1,38 @@
+{
+  "id": "019e4fe9-26b8-7002-bcbd-996d702e0042",
+  "topic_id": "019e4fe0-21d7-7005-a322-3e86ea029186",
+  "title": "Konwencja nazewnictwa testów wyjaśniająca rationale, nie tylko zakres",
+  "title_locked": false,
+  "status": "accepted",
+  "status_locked": false,
+  "context": {
+    "text": "Nazwy testów typu `CalculateUnitFootprint_SmallWeight` mówią CO test sprawdza, ale nie DLACZEGO istnieje. Recenzentka proponuje wzorzec ujawniający rationale (np. PreservesPrecision_WithVerySmallMaterialWeight) — nazwy które wyjaśniają cel oszczędzają czas śledztwa przy regresjach.",
+    "text_locked": false,
+    "supporting_content": [
+      {
+        "type": "idea_unit_ref",
+        "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+        "turn_index": 16,
+        "idea_unit_index": 0,
+        "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+      }
+    ]
+  },
+  "decision": {
+    "text": "Wszystkie nowe testy w pakiecie CalculateUnitFootprint stosują wzorzec nazewnictwa `<Method>_<Property>_<Condition>`, gdzie property nazywa zachowaną własność, a condition nazywa kontekst aktywujący test.",
+    "text_locked": false,
+    "rationale": "Czytelność i samodokumentacja testu — nazwa, która mówi dlaczego, oszczędza godzinę śledztwa przy każdej regresji.",
+    "rationale_locked": false,
+    "supporting_content": [
+      {
+        "type": "idea_unit_ref",
+        "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+        "turn_index": 17,
+        "idea_unit_index": 0,
+        "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+      }
+    ]
+  },
+  "alternative_options": [],
+  "is_stale": false
+}

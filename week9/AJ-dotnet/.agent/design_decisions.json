@@ -1,0 +1,433 @@
+{
+  "schemaVersion": "1.0",
+  "task": {
+    "id": "footprint-calculation-engine",
+    "title": "Footprint Calculation Engine",
+    "startedAt": "2026-05-22T00:00:00Z",
+    "userRequest": "/noesis:create-design-doc @noesis/documents/CarbonFootprint-draft.md @noesis/archetype/pricing.md"
+  },
+  "decisions": [
+    {
+      "id": "D-001",
+      "timestamp": "2026-05-22T00:05:00Z",
+      "status": "accepted",
+      "category": "scope",
+      "impact": "high",
+      "confidence": "high",
+      "decision": "Treat the entire design doc as green-field — every item goes into `added` ChangeSets; no `modified`, no `removed`.",
+      "context": "git status shows every `src/CarbonFootprintCalculation/**` file as deleted with no replacement on disk; `ls src/` is empty. The prior design doc `footprint-calculation-engine-a1618a5c.json` is also deleted. The graph is empty (`list_design_docs` returns none, `read_bounded_context_map` returns no docs yet, `list_actors` returns []).",
+      "reason": "Per the §1.0a + §4 bucketing rule, an item is `added` when it is not in code anywhere. Nothing is in code, so every item is `added`. References resolve inside this doc only.",
+      "alternativesConsidered": [
+        { "option": "Restore from the deleted prior design doc and emit a delta", "reasonNotChosen": "The prior doc is gone from the graph; there is no baseline to diff against. The implementing code is also gone. There is nothing to be a delta from." }
+      ],
+      "consequences": [
+        "Every BB, behaviour, rule, scenario, QA appears in `added` form (full spec).",
+        "No cross-doc reference resolution needed — everything is self-contained.",
+        "Implementer (`noesis:implement-design-doc`) will materialise the full BC from scratch."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": true,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-002",
+      "timestamp": "2026-05-22T00:08:00Z",
+      "status": "accepted",
+      "category": "architecture",
+      "impact": "high",
+      "confidence": "high",
+      "decision": "Carve out a single new Bounded Context `FootprintCalculation` without explicit user confirmation.",
+      "context": "Draft and design doc title both explicitly name this scope. BC map is empty. Per SKILL.md 'Approval gates' Rule, the green-field carve-out applies: confirmation is implicit when (a) BC map is empty AND (b) user-supplied title explicitly names the BC.",
+      "reason": "Both green-field carve-out conditions are met; explicit AskUserQuestion would be redundant friction in auto-mode.",
+      "alternativesConsidered": [
+        { "option": "Ask via AskUserQuestion before creating the BC", "reasonNotChosen": "Green-field carve-out explicitly waives this confirmation; the draft itself is the authorisation." }
+      ],
+      "consequences": [
+        "Single BC structures the whole doc.",
+        "No relations to other BCs (Emission Factor Management, Product Catalog, etc.) are modelled — they appear only as integration BBs (`EmissionFactorPort`, `ComponentRepository`)."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": true,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-003",
+      "timestamp": "2026-05-22T00:12:00Z",
+      "status": "accepted",
+      "category": "architecture",
+      "impact": "high",
+      "confidence": "high",
+      "decision": "Split FootprintCalculation into three modules by domain cohesion: `ComponentTree`, `EmissionMeasurement`, `FootprintReporting`.",
+      "context": "Counting expected BBs yielded ~24 — above the ~15 threshold at which the schema doc requires module subdivision. Natural cohesion axes identified from the draft: (1) structural decomposition of the footprint tree, (2) the math of computing emissions, (3) the public-facing facade + breakdown.",
+      "reason": "Modules MUST reflect domain capability, not technical layers (modularization.md). The three chosen modules each have 6–10 BBs — within the 3–7 sweet spot, above the 3-BB minimum.",
+      "alternativesConsidered": [
+        { "option": "Keep everything flat under the BC (no modules)", "reasonNotChosen": "24 BBs in one flat BC triggers `save_design_doc` warning (>20 BBs without modules) and harms navigability." },
+        { "option": "Split by technical layer — Domain, Application, Infrastructure", "reasonNotChosen": "Modularization rule explicitly forbids technical-pattern modules." },
+        { "option": "Add a fourth `Versioning` module", "reasonNotChosen": "Versioning concepts (SimpleComponentVersion, Validity) cohere tightly with ComponentTree — splitting them would create a 2-BB module (smell)." }
+      ],
+      "consequences": [
+        "Cross-module references exist (e.g. `SimpleComponent.scope` → `EmissionScope` in FootprintReporting). These are allowed by the schema and acceptable.",
+        "Future versioning extensions stay inside ComponentTree."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": true,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-004",
+      "timestamp": "2026-05-22T00:15:00Z",
+      "status": "accepted",
+      "category": "data-model",
+      "impact": "medium",
+      "confidence": "high",
+      "decision": "Adopt Pricing Archetype Level 7 with `definedAt` traceability on each `SimpleComponentVersion`. Do NOT model Level 8 (algorithm history).",
+      "context": "Draft explicitly self-declares Level 7. Concrete Example 4 (factor change reproducibility) + breakdown carrying `factorValidFrom` already imply per-version metadata, which is `definedAt` semantics. The archetype's Level 8 would mean the computation algorithm itself is versioned — but the draft uses ONE calculator (decision #2) and only rate values vary.",
+      "reason": "Level 7 + `definedAt` exactly covers the draft's reproducibility requirement without inventing scope (computation versioning) the draft doesn't ask for.",
+      "alternativesConsidered": [
+        { "option": "Pure Level 7 without `definedAt`", "reasonNotChosen": "Decision #6 of the draft requires breakdown carry `factorValidFrom` for audit; storing `definedAt` on the version is cheap and unlocks the audit pivot." },
+        { "option": "Full Level 8 with algorithm versioning", "reasonNotChosen": "Draft uses one calculator type only. Modelling algorithm versions would be speculative scope." }
+      ],
+      "consequences": [
+        "`SimpleComponentVersion` carries `calculatorId`, `rate`, `validity`, `definedAt` — all immutable.",
+        "Implementation cost: one extra Timestamp field on the version."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": true,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-005",
+      "timestamp": "2026-05-22T00:16:00Z",
+      "status": "accepted",
+      "category": "data-model",
+      "impact": "medium",
+      "confidence": "high",
+      "decision": "Model only `SimpleComponentVersion` for versioning. Do NOT introduce `CompositeComponentVersion`.",
+      "context": "Draft's 'Versioning & Temporal Resolution' table only mentions SimpleComponent. The composite tree is structurally static (root → materials/transport/packaging/cold-storage hierarchy doesn't change); only the rate values on leaves are temporal.",
+      "reason": "YAGNI — the archetype permits CompositeComponentVersion but the draft never uses it.",
+      "alternativesConsidered": [
+        { "option": "Also model CompositeComponentVersion for symmetry with the archetype", "reasonNotChosen": "Unused complexity. Composite structure changes are rare and would warrant a separate doc revision anyway." }
+      ],
+      "consequences": [
+        "Composite tree is built once and shared across timestamps; only the leaves resolve different versions.",
+        "If the structure ever needs to change (new emission category added), it requires a doc/code change, not a runtime version."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": true,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-006",
+      "timestamp": "2026-05-22T00:18:00Z",
+      "status": "accepted",
+      "category": "naming",
+      "impact": "low",
+      "confidence": "high",
+      "decision": "Name the calculator `EmissionCalculator` (draft term), not `SimpleFixedCalculator` (archetype term). Name the breakdown carrier `FootprintBreakdown` (draft term), not `ComponentBreakdown` (archetype term).",
+      "context": "Draft consistently uses `EmissionCalculator` and `FootprintBreakdown`. The archetype reference's `SimpleFixedCalculator` is defined as `f(x) = c` (flat constant) — but the actual semantics here are `f(rate, quantity) = rate × quantity`, which is linear, not flat. The archetype name would be misleading.",
+      "reason": "Domain term beats archetype convention (per Source-of-truth ranking: file_paths > references). The name should reflect what the BB does in this domain.",
+      "alternativesConsidered": [
+        { "option": "Use archetype names verbatim (`SimpleFixedCalculator`, `ComponentBreakdown`)", "reasonNotChosen": "Misleading semantics; draft is closer to ubiquitous language." }
+      ],
+      "consequences": [
+        "If future versions add a second calculator type, naming convention is `<X>Calculator`.",
+        "Tooling/devs reading both archetype and design doc need a mental mapping note — captured in the BB description."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": true,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-007",
+      "timestamp": "2026-05-22T00:22:00Z",
+      "status": "accepted",
+      "category": "data-model",
+      "impact": "medium",
+      "confidence": "medium",
+      "decision": "Do NOT model boolean-returning predicate operations (`Validity.IsValidAt`, `Applicability.IsSatisfiedBy`) as formal Behaviour entries in the JSON. Keep them as documented operations in BB descriptions.",
+      "context": "Schema doc says behaviour `input`/`output` lists must be BB names (no primitives — wrap in VOs). Both predicates return `Boolean`. There is no meaningful VO to wrap a true/false result that is consumed inline.",
+      "reason": "Wrapping a boolean predicate result in a `BooleanResult` VO would be a phantom umbrella BB explicitly forbidden by the schema doc §5.3. Better to omit the formal behaviour and let the implementation derive these methods naturally; the rules that depend on them attach at BB level on `Validity` and `Applicability`.",
+      "alternativesConsidered": [
+        { "option": "Add a `BooleanResult` thin VO for predicate outputs", "reasonNotChosen": "Phantom BB; adds no domain value." },
+        { "option": "Use raw `Boolean` primitive in behaviour output", "reasonNotChosen": "Schema doc forbids primitives in input/output." },
+        { "option": "Keep VersionAt + drop predicates", "reasonNotChosen": "Exactly what we did — VersionAt returns SimpleComponentVersion (a BB), so it stays." }
+      ],
+      "consequences": [
+        "`Validity` and `Applicability` BBs have no `behaviours` ChangeSet, only rules and descriptions.",
+        "Implementer must derive the predicate methods from the BB descriptions and the attached rules.",
+        "Risk: an implementer unfamiliar with the conventions may miss the predicate methods. Mitigated by explicit mention in BB description and by the rules attached at BB level."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": true,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-008",
+      "timestamp": "2026-05-22T00:25:00Z",
+      "status": "accepted",
+      "category": "data-model",
+      "impact": "low",
+      "confidence": "high",
+      "decision": "Introduce explicit base BBs `Component`, `Applicability`, `BreakdownNode` to model polymorphism. Subtypes declare `implements: [...]`.",
+      "context": "`CompositeComponent.children` is a heterogeneous collection of SimpleComponent + CompositeComponent. Same for `CompositeBreakdownNode.children` (Simple + Composite breakdown nodes). The `Applicability` field on Component can hold either AlwaysApplicable or RequiresRefrigeration. Per schema doc §5.3, this requires explicit base BBs.",
+      "reason": "The schema validator requires the base. Without it, `properties[].type: 'Component'` would be a phantom name. The base represents a real domain abstraction (the role shared by composites and leaves).",
+      "alternativesConsidered": [
+        { "option": "Use `Object` or `Any` as the heterogeneous type", "reasonNotChosen": "Phantom umbrella BB — explicitly forbidden by schema doc §5.3." },
+        { "option": "Flatten — separate `simpleChildren` and `compositeChildren` collections", "reasonNotChosen": "Distorts the model. Tree traversal would have to manage two collections per composite." }
+      ],
+      "consequences": [
+        "Three base BBs add minor schema surface (each carries common properties like `id`, `applicability`, `kgCO2`).",
+        "Implementation will use OOP inheritance or sum types depending on the target language idiom."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": false,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-009",
+      "timestamp": "2026-05-22T00:28:00Z",
+      "status": "accepted",
+      "category": "scope",
+      "impact": "medium",
+      "confidence": "high",
+      "decision": "Introduce a single actor `Customer`. Do NOT model an `Auditor` actor.",
+      "context": "Actors must be end-user personas. The draft mentions 'Frontend (product detail page)' (system, not actor), 'Application Layer' (technical, not actor), and various downstream consumers (Eco Rating, Historical Audit) — all out of scope per the draft. The Customer browsing a product detail page is the natural human persona that triggers `CalculateTotalFootprint` and `CalculateUnitFootprint`.",
+      "reason": "The audit reproducibility scenario (Example 4) is still customer-facing in this BC (the customer asks for a historical comparison); Historical Audit / Compliance Reporting is explicitly out of scope and belongs to a different BC.",
+      "alternativesConsidered": [
+        { "option": "Add `Auditor` and `ComplianceOfficer` actors", "reasonNotChosen": "Those use cases live in a different BC per the draft's Out-of-Scope section." },
+        { "option": "Add a `System` or `Scheduler` actor for internal calls", "reasonNotChosen": "SKILL.md §3.2 forbids non-human actors." }
+      ],
+      "consequences": [
+        "`upsert_actor` called for `Customer` only.",
+        "Future BCs (Historical Audit) will register their own actors against the same graph-global catalog."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": true,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-010",
+      "timestamp": "2026-05-22T00:32:00Z",
+      "status": "accepted",
+      "category": "data-model",
+      "impact": "low",
+      "confidence": "high",
+      "decision": "Mark `EmissionFactorPort` as `external_integration` BB type — a domain port pointing to the separate Emission Factor Management BC. Mark `ComponentRepository` as `repository`.",
+      "context": "Emission Factor Management is explicitly Out of Scope (separate BC, Resource Contention archetype). The integration must remain abstract within this doc; the adapter implementation lives outside. `ComponentRepository` is the conventional collection-like access to component trees keyed by ProductId.",
+      "reason": "`external_integration` is the BB type whose semantic matches a port to another BC. `repository` matches the collection-style access. Schema doc §1 lexicon supports both.",
+      "alternativesConsidered": [
+        { "option": "Model `EmissionFactorPort` as a `domain_service`", "reasonNotChosen": "Misleading — a port is not a service in the DDD sense; it is the contract for crossing a boundary." }
+      ],
+      "consequences": [
+        "Implementer will produce an adapter for `EmissionFactorPort` separately (in-process when Factor module lives in the same solution; over-network otherwise).",
+        "Test infrastructure can substitute an in-memory adapter trivially."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": true,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-011",
+      "timestamp": "2026-05-22T00:35:00Z",
+      "status": "accepted",
+      "category": "other",
+      "impact": "low",
+      "confidence": "medium",
+      "decision": "Classify the three quality attributes (Determinism, HistoricalReproducibility, BreakdownAuditCompleteness) under `type: 'other'`.",
+      "context": "Schema enum allows `performance | availability | security | other`. The three QAs in this doc are about purity, reproducibility, and audit completeness — none cleanly fits performance/availability/security.",
+      "reason": "`other` is the catch-all; misclassifying determinism as `performance` would be semantically wrong.",
+      "alternativesConsidered": [
+        { "option": "Use `performance` for Determinism (proxy for predictable response shape)", "reasonNotChosen": "Determinism is not a performance characteristic — it is a referential-transparency guarantee." }
+      ],
+      "consequences": [
+        "Downstream tooling that buckets QAs by type sees three `other` entries. Names follow `Other:<Subject>` convention for discoverability."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": true,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-012",
+      "timestamp": "2026-05-22T00:38:00Z",
+      "status": "accepted",
+      "category": "scope",
+      "impact": "low",
+      "confidence": "high",
+      "decision": "Skipped clarifying-question round at §3.6 — applied all resolutions inline.",
+      "context": "Auto-mode active. SKILL.md says: 'bias toward working without stopping for clarifying questions — when you'd normally pause to check, make the reasonable call and keep going'. §3.6 resolutions were all supported by explicit statements in the source files (Pricing Archetype level, calculator type, breakdown audit fields, applicability exclusion).",
+      "reason": "Auto-mode + every resolution had explicit source support.",
+      "alternativesConsidered": [
+        { "option": "Issue an AskUserQuestion round for §3.6 resolutions", "reasonNotChosen": "Would slow the run with no decision actually unresolved by the source material." }
+      ],
+      "consequences": [
+        "Resolutions captured under `## Resolutions` heading in `analysis-model.md`.",
+        "User can override any of them by editing the on-disk JSON or by re-invoking the skill."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": true,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-013",
+      "timestamp": "2026-05-22T00:40:00Z",
+      "status": "accepted",
+      "category": "other",
+      "impact": "low",
+      "confidence": "high",
+      "decision": "Embed mermaid sequence diagrams in `CalculateTotalFootprint` and `CalculateUnitFootprint` behaviour descriptions inline, sourced from the draft's 'Data Flow' ASCII diagrams.",
+      "context": "Schema doc §5.4 requires mermaid for application_service behaviours and any behaviour using ≥3 BBs. Both facade behaviours qualify. Draft already has compatible ASCII diagrams to adapt.",
+      "reason": "Adapting available source diagrams beats authoring from scratch or deferring to a save-warning round-trip.",
+      "alternativesConsidered": [
+        { "option": "Skip mermaid and let save warn", "reasonNotChosen": "Wastes a round-trip; the source has the diagram already." }
+      ],
+      "consequences": [
+        "Save returned zero warnings on first attempt.",
+        "Diagram drift is now possible: if behaviour semantics change, the embedded mermaid must change too."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": true,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-014",
+      "timestamp": "2026-05-22T00:42:00Z",
+      "status": "accepted",
+      "category": "other",
+      "impact": "low",
+      "confidence": "high",
+      "decision": "Deleted stale scratch files from a prior run of the same skill execution before regenerating them.",
+      "context": "Working dir already contained 8 analysis files dated 2026-05-07 from a previous run that produced the now-deleted `footprint-calculation-engine-a1618a5c.json`. The graph state has since changed (the prior doc was removed and code deleted).",
+      "reason": "Reusing stale analyses risks pulling in obsolete conclusions; a clean re-derivation is cheaper than diffing.",
+      "alternativesConsidered": [
+        { "option": "Read each stale file and merge into the new analysis", "reasonNotChosen": "More work, more risk of stale content surviving." }
+      ],
+      "consequences": [
+        "Scratch directory is fresh.",
+        "Lost: any in-progress notes from the May 7 run — but those were already obsolete given the deleted doc."
+      ],
+      "affectedFiles": ["/var/folders/.../noesis:create-design-doc/footprint-calculation-engine/*.md"],
+      "reversible": false,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-015",
+      "timestamp": "2026-05-22T00:44:00Z",
+      "status": "accepted",
+      "category": "data-model",
+      "impact": "medium",
+      "confidence": "high",
+      "decision": "Model non-applicable composite components as EXCLUDED from the breakdown (not present as kgCO2 = 0).",
+      "context": "Draft's Concrete Example 3 explicitly states cold-storage is 'excluded (applicability false) → breakdown ma tylko materials + transport + packaging'. The pricing archetype lists both options (Money.zero() vs exclude); the draft picks exclude.",
+      "reason": "Source-of-truth ranking: draft wins. Exclusion is also semantically richer for a UI (no empty section for non-applicable categories).",
+      "alternativesConsidered": [
+        { "option": "Include with kgCO2 = 0", "reasonNotChosen": "Draft Example 3 explicitly rules this out." }
+      ],
+      "consequences": [
+        "Rule `NieaktywnyKompozytJestWykluczonyZBreakdown` codifies the choice on `CalculateTotalFootprint`.",
+        "Scenario `ProduktNiechłodzonyNieZawieraColdStorage` exercises it.",
+        "UI must handle missing sections gracefully (no assumption that every category is present)."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": true,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-016",
+      "timestamp": "2026-05-22T01:30:00Z",
+      "status": "accepted",
+      "category": "scope",
+      "impact": "medium",
+      "confidence": "high",
+      "decision": "Iterate on the existing footprint-calculation-engine design doc to attach 9 test scenarios + 1 consistency invariant rule to FootprintFacade.CalculateUnitFootprint, drawn from the merged code-review conversation `2be19efc-…`.",
+      "context": "User request: 'add missing scenarios to design doc based on conversation'. The conversation enumerates concrete test cases for CalculateUnitFootprint that were not captured anywhere in the prior model (CalculateUnitFootprint had no scenarios and no rules — only a description with mermaid and the public Query signature).",
+      "reason": "Scenarios capture executable specification of the unit-conversion path and protect against silent regressions (decimal→double, divide-by-two, applicability removal). The consistency invariant is a domain truth surfaced by scenario 9 that wasn't documented as a Rule.",
+      "alternativesConsidered": [
+        { "option": "Also add Validation rules for guards (MaterialWeightKg > 0, parameters != null)", "reasonNotChosen": "Out of scope per user request ('scenarios'). Guards are well-documented by scenarios 4-6 themselves; can be added in a future iteration." },
+        { "option": "Promote testing conventions (semantic test names, magic-number comment, FsCheck deferral) into the design doc", "reasonNotChosen": "Process/convention concerns, not domain. Already captured as Decisions in the knowledge graph via analyze-conversation." }
+      ],
+      "consequences": [
+        "CalculateUnitFootprint now has 9 scenarios and 1 rule.",
+        "The consistency invariant `unit_footprint × MaterialWeightKg × 10 == total` is a first-class domain rule, not just a test-case assertion."
+      ],
+      "affectedFiles": ["noesis/design-docs/footprint-calculation-engine-6e3108da.json"],
+      "reversible": true,
+      "requiresUserReview": false,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "" },
+      "supersedes": [],
+      "supersededBy": null
+    },
+    {
+      "id": "D-017",
+      "timestamp": "2026-05-22T01:45:00Z",
+      "status": "accepted",
+      "category": "other",
+      "impact": "high",
+      "confidence": "high",
+      "decision": "Treat `save_design_doc` as full-document replacement, not delta merge. Future iterations must submit the COMPLETE design doc JSON, even when only adding sub-elements.",
+      "context": "First iteration attempt submitted only the delta (just CalculateUnitFootprint with new scenarios in nested ChangeSets, omitting all other modules/BBs). The save accepted it with zero warnings, but the on-disk file was reduced from 1120 lines to 192 — every other BB, module, behaviour, and rule was lost. The schema doc's wording 'extend or override their existing peers by name' / 'items the upload does not mention survive untouched' described a merge semantic that the tool does not actually implement (or implements differently than I read).",
+      "reason": "Empirical: the round-trip was destructive. Save discarded all entities not present in the upload.",
+      "alternativesConsidered": [
+        { "option": "Continue trusting the schema doc's stated merge semantics and submit partial deltas", "reasonNotChosen": "Empirically destructive — already lost the file once this session." },
+        { "option": "Investigate whether there's a `mode: merge` parameter or different API for additive updates", "reasonNotChosen": "Out of scope. Pragmatic answer is to always submit the full doc." }
+      ],
+      "consequences": [
+        "Recovery: rebuilt the entire JSON from prior-content evidence in conversation context (system reminders), with new scenarios + rule added.",
+        "Future skill invocations must read the full prior doc, modify in place, then save the COMPLETE file.",
+        "The schema doc's merge-semantics section is misleading and should be revised; flagging for future skill maintainers."
+      ],
+      "affectedFiles": [
+        "noesis/design-docs/footprint-calculation-engine-6e3108da.json"
+      ],
+      "reversible": false,
+      "requiresUserReview": true,
+      "userConfirmation": { "required": false, "status": "not-required", "confirmedBy": "none", "confirmedAt": null, "notes": "Lesson learned this session. File restored." },
+      "supersedes": [],
+      "supersededBy": null
+    }
+  ]
+}

@@ -37,6 +37,26 @@ const config = defineConfig({
         },
       },
     },
+    semanticTokens: {
+      colors: {
+        scope1: {
+          bg: { value: "{colors.amber.100}" },
+          fg: { value: "{colors.amber.800}" },
+        },
+        scope2: {
+          bg: { value: "{colors.blue.100}" },
+          fg: { value: "{colors.blue.800}" },
+        },
+        scope3: {
+          bg: { value: "{colors.indigo.100}" },
+          fg: { value: "{colors.indigo.800}" },
+        },
+        scopeMixed: {
+          bg: { value: "{colors.gray.100}" },
+          fg: { value: "{colors.gray.800}" },
+        },
+      },
+    },
   },
 });
 

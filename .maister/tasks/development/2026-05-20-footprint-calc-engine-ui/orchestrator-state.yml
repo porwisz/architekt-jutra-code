@@ -1,0 +1,104 @@
+orchestrator:
+  started_phase: phase-1
+  completed_phases: [phase-1, phase-2, phase-4, phase-5, phase-6, phase-7, phase-8, phase-9, phase-10, phase-11, phase-12, phase-13, phase-14]
+  failed_phases: []
+  auto_fix_attempts: {}
+  options:
+    spec_audit_enabled: true
+    skip_test_suite: true
+    e2e_enabled: false
+    user_docs_enabled: false
+    code_review_enabled: true
+    pragmatic_review_enabled: true
+    reality_check_enabled: true
+    production_check_enabled: true
+  created: 2026-05-20T00:00:00Z
+  updated: 2026-05-20T00:00:00Z
+  task_path: .maister/tasks/development/2026-05-20-footprint-calc-engine-ui
+  task_ids: {}
+
+task:
+  title: Footprint Calculator UI
+  description: |
+    Implement the frontend UI for the carbon footprint calculation engine.
+    Backend was completed in development task 2026-05-20-footprint-calc-engine
+    (FootprintFacade + REST GET /api/products/{productId}/footprint + CSV export).
+    Three HTML mockups from the product-design task become binding inputs:
+    product-footprint-detail, product-footprint-comparison,
+    product-footprint-historical-timeline.
+  status: completed
+  tags: [frontend, footprint, ui]
+  priority: null
+
+task_context:
+  risk_level: medium-low
+  clarifications_resolved: true
+  scope_expanded: false
+  architecture_decision: null
+  task_characteristics:
+    has_reproducible_defect: false
+    modifies_existing_code: true
+    creates_new_entities: false
+    involves_data_operations: false
+    ui_heavy: true
+  research_reference:
+    path: null
+    research_question: null
+    research_type: null
+    confidence_level: null
+  design_reference:
+    source: product-design
+    product_design_path: .maister/tasks/product-design/2026-05-20-footprint-calc-engine
+    mockup_count: 3
+    has_brief: true
+    index_path: .maister/tasks/development/2026-05-20-footprint-calc-engine-ui/analysis/design-context/INDEX.md
+  phase_summaries:
+    research: {summary: null, key_findings: [], recommended_approach: null}
+    design:
+      summary: "3 HTML mockups (detail, comparison, historical timeline) + product brief ingested from product-design task 2026-05-20-footprint-calc-engine."
+      screen_count: 3
+      component_count: 0
+      index_path: .maister/tasks/development/2026-05-20-footprint-calc-engine-ui/analysis/design-context/INDEX.md
+    codebase_analysis:
+      key_files:
+        - src/main/frontend/src/pages/ProductDetailPage.tsx
+        - src/main/frontend/src/pages/ProductListPage.tsx
+        - src/main/frontend/src/api/client.ts
+        - src/main/frontend/src/api/products.ts
+        - src/main/frontend/src/hooks/useProducts.ts
+        - src/main/frontend/src/router.tsx
+        - src/main/frontend/src/components/layout/Sidebar.tsx
+        - src/main/frontend/src/components/layout/MobileDrawer.tsx
+        - src/main/frontend/src/components/layout/Header.tsx
+        - src/main/frontend/src/utils/format.ts
+        - src/main/frontend/src/test/pages.test.tsx
+      primary_language: TypeScript/React
+      summary: "React 19 + Vite + React Router v7 + Chakra UI v3 host frontend with manual useState/useEffect data fetching. ProductDetailPage/ProductListPage/useProducts provide clear templates. Four cross-cutting gaps to fill: Problem+JSON parser, blob download helper, CO2e/per-100g formatters, chart library (recharts)."
+    clarifications:
+      - "Chart library: recharts"
+      - "Nav placement: top-level sidebar entry"
+      - "CSV export feedback: inline status text"
+      - "Problem+JSON parser: shared helper at src/api/problem.ts"
+    gap_analysis:
+      integration_points:
+        - src/main/frontend/src/router.tsx
+        - src/main/frontend/src/components/layout/Sidebar.tsx
+        - src/main/frontend/src/components/layout/MobileDrawer.tsx
+        - src/main/frontend/src/components/layout/Header.tsx
+        - src/main/frontend/src/components/shared/Icons.tsx
+        - src/main/frontend/src/utils/format.ts
+        - src/main/frontend/src/pages/ProductDetailPage.tsx
+        - src/main/frontend/package.json
+      summary: "UI-only additive task: 3 new pages + cross-cutting helpers (Problem+JSON parser, blob download, formatters, recharts). Risk medium-low. 3 critical IA decisions remain: comparison-selection UX, timeline access path, ProductDetailPage integration mode."
+    scope_clarifications:
+      scope_expanded: false
+      summary: "9 decisions resolved (3 critical IA, 6 important defaults accepted). V1 scope: same-product comparison, per-product timeline only, footprint as separate route + CTA from ProductDetailPage. Routes nested under /products/:id/footprint/*. Save-comparison via shareable URL. Explicit Recalculate button. Skipped: factor-band overlay, factor-version event log, cross-product features, toast system."
+    ui_mockups: {components_designed: [], summary: null}
+    specification:
+      summary: "V1 spec (450L, 9 FRs): 2 pages (detail at /products/:id/footprint, scenario comparison at /products/:id/footprint/compare), shared problem.ts parser, downloadBlob util, CO2e formatters, FootprintIcon, top-level sidebar entry. Timeline page deferred V1.1. Backend response types hand-written. 3 documented warnings: optional headers param on api client, mockup's View History button omitted, destinationDistanceKm numeric input instead of named destination dropdown."
+    architecture_decision: {decision: null, summary: null}
+
+project_context:
+  project_doc_paths:
+    - .maister/docs/project/tech-stack.md
+    - .maister/docs/project/architecture.md

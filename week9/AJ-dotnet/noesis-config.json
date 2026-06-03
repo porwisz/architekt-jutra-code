@@ -1,0 +1,6 @@
+{
+  "namespacesToExclude": [
+    "FootprintCalculation.Tests",
+    "FootprintCalculation.Tests.*"
+  ]
+}

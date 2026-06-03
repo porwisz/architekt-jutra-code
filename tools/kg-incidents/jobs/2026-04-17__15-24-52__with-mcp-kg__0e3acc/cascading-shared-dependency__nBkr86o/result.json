@@ -1,0 +1,104 @@
+{
+    "id": "92ecb98b-639a-4443-a71e-a1bdfa04d026",
+    "task_name": "cascading-shared-dependency",
+    "trial_name": "cascading-shared-dependency__nBkr86o",
+    "trial_uri": "file:///Users/szjanikowski/Documents/git/noesis/sdlc-projects/aj-code/evals/kg-incidents/jobs/2026-04-17__15-24-52__with-mcp-kg__0e3acc/cascading-shared-dependency__nBkr86o",
+    "task_id": {
+        "path": "/Users/szjanikowski/Documents/git/noesis/sdlc-projects/aj-code/evals/kg-incidents/tasks/cascading-shared-dependency"
+    },
+    "source": "kg-incidents",
+    "task_checksum": "58294735fdff0eae594cef53b8b6462e11d279adb8fb36db9730d7b3f2aa0875",
+    "config": {
+        "task": {
+            "path": "/Users/szjanikowski/Documents/git/noesis/sdlc-projects/aj-code/evals/kg-incidents/tasks/cascading-shared-dependency",
+            "git_url": null,
+            "git_commit_id": null,
+            "overwrite": false,
+            "download_dir": null,
+            "source": "kg-incidents"
+        },
+        "trial_name": "cascading-shared-dependency__nBkr86o",
+        "trials_dir": "/Users/szjanikowski/Documents/git/noesis/sdlc-projects/aj-code/evals/kg-incidents/jobs/2026-04-17__15-24-52__with-mcp-kg__0e3acc",
+        "timeout_multiplier": 1.0,
+        "agent_timeout_multiplier": null,
+        "verifier_timeout_multiplier": null,
+        "agent_setup_timeout_multiplier": null,
+        "environment_build_timeout_multiplier": null,
+        "agent": {
+            "name": "with-mcp-kg",
+            "import_path": "nasde_toolkit.agents.configurable_claude:ConfigurableClaude",
+            "model_name": "claude-opus-4-6",
+            "override_timeout_sec": null,
+            "override_setup_timeout_sec": null,
+            "max_timeout_sec": null,
+            "kwargs": {
+                "sandbox_files": {
+                    "/app/CLAUDE.md": "/Users/szjanikowski/Documents/git/noesis/sdlc-projects/aj-code/evals/kg-incidents/variants/with-mcp-kg/CLAUDE.md",
+                    "/logs/agent/sessions/.claude.json": "/Users/szjanikowski/Documents/git/noesis/sdlc-projects/aj-code/evals/kg-incidents/variants/with-mcp-kg/claude_config.json"
+                }
+            },
+            "env": {}
+        },
+        "environment": {
+            "type": "docker",
+            "import_path": null,
+            "force_build": false,
+            "delete": true,
+            "override_cpus": null,
+            "override_memory_mb": null,
+            "override_storage_mb": null,
+            "override_gpus": null,
+            "suppress_override_warnings": false,
+            "kwargs": {}
+        },
+        "verifier": {
+            "override_timeout_sec": null,
+            "max_timeout_sec": null,
+            "disable": false
+        },
+        "artifacts": [
+            {
+                "source": "/app",
+                "destination": "workspace"
+            }
+        ],
+        "job_id": "02261426-2854-46c5-946d-56bc24b91f13"
+    },
+    "agent_info": {
+        "name": "configurable-claude-code",
+        "version": "unknown",
+        "model_info": null
+    },
+    "agent_result": {
+        "n_input_tokens": 956820,
+        "n_cache_tokens": 956706,
+        "n_output_tokens": 23796,
+        "cost_usd": null,
+        "rollout_details": null,
+        "metadata": null
+    },
+    "verifier_result": {
+        "rewards": {
+            "reward": 1.0
+        }
+    },
+    "exception_info": null,
+    "started_at": "2026-04-17T13:24:54.850949Z",
+    "finished_at": "2026-04-17T13:29:57.311728Z",
+    "environment_setup": {
+        "started_at": "2026-04-17T13:24:54.855412Z",
+        "finished_at": "2026-04-17T13:25:41.282841Z"
+    },
+    "agent_setup": {
+        "started_at": "2026-04-17T13:25:41.282958Z",
+        "finished_at": "2026-04-17T13:27:36.179162Z"
+    },
+    "agent_execution": {
+        "started_at": "2026-04-17T13:27:36.179646Z",
+        "finished_at": "2026-04-17T13:29:53.686640Z"
+    },
+    "verifier": {
+        "started_at": "2026-04-17T13:29:53.686978Z",
+        "finished_at": "2026-04-17T13:29:53.967787Z"
+    }
+}

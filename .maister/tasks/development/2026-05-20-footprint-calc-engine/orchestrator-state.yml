@@ -1,0 +1,171 @@
+orchestrator:
+  started_phase: phase-1
+  completed_phases: []
+  failed_phases: []
+  auto_fix_attempts: {}
+  options:
+    spec_audit_enabled: true
+    skip_test_suite: true
+    e2e_enabled: null
+    user_docs_enabled: null
+    code_review_enabled: true
+    pragmatic_review_enabled: true
+    reality_check_enabled: true
+    production_check_enabled: true
+    sequential: false
+  created: 2026-05-20T00:00:00Z
+  updated: 2026-05-20T00:00:00Z
+  task_path: .maister/tasks/development/2026-05-20-footprint-calc-engine
+  task_ids: {}
+
+task:
+  title: Footprint Calculation Engine
+  description: |
+    Implement the carbon footprint calculation engine as a core (kernel) service for the aj platform.
+    Stateless calculator + thin REST surface + async audit log + CSV exporter, designed and specified
+    in product-design task 2026-05-20-footprint-calc-engine. Dual surface (Spring bean +
+    REST GET /api/products/{id}/footprint), pure-math API, configurable strictness, async audit via
+    @TransactionalEventListener(AFTER_COMMIT), Pricing Archetype reuse.
+  status: in_progress
+  tags: [sustainability, calculation-engine, kernel, pricing-archetype]
+  priority: high
+
+project_context:
+  project_doc_paths:
+    - .maister/docs/project/tech-stack.md
+    - .maister/docs/project/architecture.md
+
+task_context:
+  risk_level: null
+  clarifications_resolved: null
+  scope_expanded: null
+  architecture_decision: null
+  task_characteristics:
+    has_reproducible_defect: false
+    modifies_existing_code: false
+    creates_new_entities: true
+    involves_data_operations: true
+    ui_heavy: false
+  research_reference:
+    path: .maister/tasks/research/2026-04-17-footprint-calc-engine
+    research_question: Carbon footprint calculation engine high-level design
+    research_type: technical
+    confidence_level: high
+  design_reference:
+    source: product-design
+    product_design_path: .maister/tasks/product-design/2026-05-20-footprint-calc-engine
+    mockup_count: 3
+    has_brief: true
+    index_path: .maister/tasks/development/2026-05-20-footprint-calc-engine/analysis/design-context/INDEX.md
+  phase_summaries:
+    research:
+      summary: |
+        Research 2026-04-17 produced a full high-level design for the footprint calculation engine:
+        dual surface (Spring bean + REST GET), Pricing Archetype reuse (Calculator/Component/Validity/
+        Applicability), 13-node component tree, async audit via AFTER_COMMIT event listener, strict
+        vs lenient mode, historical reproducibility via versionAt(t), and CSV export as a separate slice.
+      key_findings: []
+      recommended_approach: Reuse com.softwarearchetypes.pricing archetype; engine in kernel module; pure-GET REST.
+    design:
+      summary: |
+        Product-design Phase 8 approved: implementation-ready feature-spec.md with 8 sections,
+        design-decisions.md, 3 HTML mockups (detail, comparison, historical timeline), and 9 acceptance
+        criteria mapped to 9 integration test scenarios (TestContainers + MockMvc).
+      screen_count: 3
+      component_count: 0
+      index_path: .maister/tasks/development/2026-05-20-footprint-calc-engine/analysis/design-context/INDEX.md
+    codebase_analysis: {key_files: [], primary_language: null, summary: null}
+    clarifications: []
+    gap_analysis: {integration_points: [], summary: null}
+    scope_clarifications: {scope_expanded: null, summary: null}
+    ui_mockups: {components_designed: [], summary: null}
+    specification: {summary: null}
+    architecture_decision: {decision: null, summary: null}
+
+verification_context:
+  last_status: null
+  issues_found: []
+  fixes_applied: []
+  decisions_made: []
+  reverify_count: 0
+
+# Phase 1 outputs
+phase_1:
+  completed_at: 2026-05-20
+  artifact: analysis/codebase-analysis.md
+  clarifications: analysis/clarifications.md
+  risk_level: medium-high
+  decisions:
+    pricing_archetype: build-in-house
+    error_format: problem-json-scoped-to-footprint
+    spi_adapters: in-memory-stubs
+    csv_export: in-scope
+
+phase_2:
+  completed_at: 2026-05-20
+  artifact: analysis/gap-analysis.md
+  risk_level: medium
+  task_characteristics:
+    has_reproducible_defect: false
+    modifies_existing_code: true
+    creates_new_entities: true
+    involves_data_operations: true
+    ui_heavy: false
+  summary: |
+    Additive backend build; ~52 components across 10 groups; minimal edits to existing code
+    (SecurityConfiguration + Liquibase master + optional Permission enum). All 4 Phase 1
+    critical decisions resolved; 5 "important" decisions surfaced for batched confirmation.
+
+phase_5:
+  completed_at: 2026-05-20
+  artifact: implementation/spec.md
+  requirements: analysis/requirements.md
+  sections: 17
+  status: ready
+
+phase_6:
+  completed_at: 2026-05-20
+  artifact: verification/spec-audit.md
+  verdict: pass-with-concerns
+  findings:
+    critical: 2
+    warning: 6
+    info: 5
+  findings_resolved_inline: true
+  resolutions:
+    C1_timestamp_types: aligned to LocalDateTime / timestamp without time zone
+    C2_sequence_generator: declared @SequenceGenerator on FootprintAuditEntity (name=base_seq, sequenceName=footprint_audit_log_id_seq, allocationSize=1)
+    W1_redundant_security_matcher: dropped /api/products/*/footprint matcher; kept only the genuinely needed /api/footprints/calculations/*/export with hasAnyAuthority(READ, mcp:read)
+    W2_format_param_status: reverted to 400 (REST convention)
+    W4_implementation_notes: added 8-item subsection covering QuantityExtractor cross-field, ProblemDetail.instance URI, JSONB compact serialization, @Retryable exhaustion semantics, X-Comparison-Group + X-Correlation-Id validation, error-code constants, Scenario I audit-row identity test
+    W5_error_code_constants: pinned as public static final String CODE on each sealed exception subclass
+    W6_speculative_index: dropped idx_footprint_audit_comparison_group
+
+workflow_status: paused_after_phase_6
+next_phase: phase-7
+resume_command: /maister:development .maister/tasks/development/2026-05-20-footprint-calc-engine --from=phase-7
+
+workflow_status: completed
+phase_8:
+  completed_at: 2026-05-20
+  artifact: implementation/work-log.md
+  groups_completed: 10
+  waves: 6
+  parallel_dispatch: true
+
+phase_11:
+  completed_at: 2026-05-20
+  artifact: verification/implementation-verification.md
+  initial_verdict: passed_with_issues
+  initial_findings: {critical: 2, warning: 14, info: 9}
+  fixes_applied: 16
+  final_test_count: 159
+  final_pass: 159
+  final_skipped: 0
+  reports:
+    - verification/implementation-completeness.md
+    - verification/implementation-verification.md
+
+phase_14:
+  completed_at: 2026-05-20
+  artifact: SUMMARY.md

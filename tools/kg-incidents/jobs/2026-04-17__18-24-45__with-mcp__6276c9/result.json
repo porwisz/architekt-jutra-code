@@ -1,0 +1,29 @@
+{
+    "id": "28e96dc2-8025-447b-a046-60bfeea20e6e",
+    "started_at": "2026-04-17T18:24:47.493176",
+    "finished_at": "2026-04-17T18:31:35.094914",
+    "n_total_trials": 1,
+    "stats": {
+        "n_trials": 1,
+        "n_errors": 0,
+        "evals": {
+            "configurable-claude-code__kg-incidents": {
+                "n_trials": 1,
+                "n_errors": 0,
+                "metrics": [
+                    {
+                        "mean": 1.0
+                    }
+                ],
+                "reward_stats": {
+                    "reward": {
+                        "1.0": [
+                            "cascading-shared-dependency__mwfVog5"
+                        ]
+                    }
+                },
+                "exception_stats": {}
+            }
+        }
+    }
+}

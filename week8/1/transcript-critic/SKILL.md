@@ -1,3 +1,9 @@
+---
+name: transcript-critic
+description: Critiques requirements and interactively rebuilds them. Applies 4 checks — problem-vs-solution framing, observable behavior vs CRUD status (interactively reformulates into proper user stories), extensible signal map of hidden domain decisions, and rigid quantifier probing. Invoked ONLY on explicit request.
+argument-hint: "[requirements text, ticket, or spec to critique]"
+---
+
 # Transcript Critic
 
 Analyze meeting transcripts to surface hidden decision-making problems that a naive summary would miss: false consensus, marginalized voices, opinions disguised as facts, hidden dependencies between "separate" topics, and scope drift.

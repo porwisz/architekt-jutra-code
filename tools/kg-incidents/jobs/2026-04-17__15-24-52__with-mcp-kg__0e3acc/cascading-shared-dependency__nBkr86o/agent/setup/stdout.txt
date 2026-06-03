@@ -1,0 +1,54 @@
+Get:1 http://ports.ubuntu.com/ubuntu-ports jammy InRelease [270 kB]
+Get:2 http://ports.ubuntu.com/ubuntu-ports jammy-updates InRelease [128 kB]
+Get:3 http://ports.ubuntu.com/ubuntu-ports jammy-backports InRelease [127 kB]
+Get:4 http://ports.ubuntu.com/ubuntu-ports jammy-security InRelease [129 kB]
+Get:5 http://ports.ubuntu.com/ubuntu-ports jammy/multiverse arm64 Packages [224 kB]
+Get:6 http://ports.ubuntu.com/ubuntu-ports jammy/universe arm64 Packages [17.2 MB]
+Get:7 http://ports.ubuntu.com/ubuntu-ports jammy/main arm64 Packages [1,758 kB]
+Get:8 http://ports.ubuntu.com/ubuntu-ports jammy/restricted arm64 Packages [24.2 kB]
+Get:9 http://ports.ubuntu.com/ubuntu-ports jammy-updates/multiverse arm64 Packages [47.7 kB]
+Get:10 http://ports.ubuntu.com/ubuntu-ports jammy-updates/universe arm64 Packages [1,678 kB]
+Get:11 http://ports.ubuntu.com/ubuntu-ports jammy-updates/restricted arm64 Packages [7,153 kB]
+Get:12 http://ports.ubuntu.com/ubuntu-ports jammy-updates/main arm64 Packages [4,057 kB]
+Get:13 http://ports.ubuntu.com/ubuntu-ports jammy-backports/universe arm64 Packages [33.9 kB]
+Get:14 http://ports.ubuntu.com/ubuntu-ports jammy-backports/main arm64 Packages [83.5 kB]
+Get:15 http://ports.ubuntu.com/ubuntu-ports jammy-security/main arm64 Packages [3,738 kB]
+Get:16 http://ports.ubuntu.com/ubuntu-ports jammy-security/restricted arm64 Packages [6,962 kB]
+Get:17 http://ports.ubuntu.com/ubuntu-ports jammy-security/universe arm64 Packages [1,376 kB]
+Get:18 http://ports.ubuntu.com/ubuntu-ports jammy-security/multiverse arm64 Packages [41.2 kB]
+Fetched 45.0 MB in 11s (3,957 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+curl is already the newest version (7.81.0-1ubuntu1.23).
+procps is already the newest version (2:3.3.17-6ubuntu2.1).
+0 upgraded, 0 newly installed, 0 to remove and 56 not upgraded.
+Setting up Claude Code...
+
+Checking installation status...
+Installing Claude Code native build latest...
+Setting up launcher and shell integration...
+⚠ Setup notes:
+  • Native installation exists but ~/.local/bin is not in your PATH. Run:
+
+  echo 'export PATH="$HOME/.local/bin:$PATH"' >> your shell config file && source your shell config file
+
+✔ Claude Code successfully installed!
+
+  Version: 2.1.112
+
+  Location: ~/.local/bin/claude
+
+
+  Next: Run claude --help to get started
+
+⚠ Setup notes:
+  • Native installation exists but ~/.local/bin is not in your PATH. Run:
+
+  echo 'export PATH="$HOME/.local/bin:$PATH"' >> your shell config file && source your shell config file
+
+
+✅ Installation complete!
+
+2.1.112 (Claude Code)

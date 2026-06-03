@@ -1,26 +1,25 @@
 import {
   Box,
+  Button,
   Flex,
   Heading,
   Image,
   Text,
 } from "@chakra-ui/react";
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { getProduct } from "../api/products";
 import type { ProductResponse } from "../api/products";
 import { usePluginContext } from "../plugins/PluginContext";
 import { PRODUCT_DETAIL_INFO, PRODUCT_DETAIL_TABS } from "../plugins/extensionPoints";
 import { PluginFrame } from "../plugins/PluginFrame";
-import { PhotoPlaceholder } from "../components/shared/Icons";
+import { FootprintIcon, PhotoPlaceholder } from "../components/shared/Icons";
+import { formatPrice } from "../utils/format";
 import { isValidImageUrl } from "../utils/url";
-
-function formatPrice(price: number): string {
-  return `$${price.toFixed(2)}`;
-}
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<ProductResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,9 +72,20 @@ export function ProductDetailPage() {
           <Text as="span">/</Text>
           <Text as="span">{product.name}</Text>
         </Flex>
-        <Heading as="h1" fontSize="24px" fontWeight="700" color="#0F172A" mt="4px">
-          {product.name}
-        </Heading>
+        <Flex mt="4px" align="center" justify="space-between" gap="12px" wrap="wrap">
+          <Heading as="h1" fontSize="24px" fontWeight="700" color="#0F172A">
+            {product.name}
+          </Heading>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/products/${product.id}/footprint`)}
+            aria-label="View carbon footprint"
+          >
+            <FootprintIcon size={16} />
+            View carbon footprint
+          </Button>
+        </Flex>
       </Box>
 
       <Flex

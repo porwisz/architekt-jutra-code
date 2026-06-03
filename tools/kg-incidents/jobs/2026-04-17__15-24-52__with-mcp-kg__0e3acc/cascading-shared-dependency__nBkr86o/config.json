@@ -1,0 +1,56 @@
+{
+    "task": {
+        "path": "/Users/szjanikowski/Documents/git/noesis/sdlc-projects/aj-code/evals/kg-incidents/tasks/cascading-shared-dependency",
+        "git_url": null,
+        "git_commit_id": null,
+        "overwrite": false,
+        "download_dir": null,
+        "source": "kg-incidents"
+    },
+    "trial_name": "cascading-shared-dependency__nBkr86o",
+    "trials_dir": "/Users/szjanikowski/Documents/git/noesis/sdlc-projects/aj-code/evals/kg-incidents/jobs/2026-04-17__15-24-52__with-mcp-kg__0e3acc",
+    "timeout_multiplier": 1.0,
+    "agent_timeout_multiplier": null,
+    "verifier_timeout_multiplier": null,
+    "agent_setup_timeout_multiplier": null,
+    "environment_build_timeout_multiplier": null,
+    "agent": {
+        "name": "with-mcp-kg",
+        "import_path": "nasde_toolkit.agents.configurable_claude:ConfigurableClaude",
+        "model_name": "claude-opus-4-6",
+        "override_timeout_sec": null,
+        "override_setup_timeout_sec": null,
+        "max_timeout_sec": null,
+        "kwargs": {
+            "sandbox_files": {
+                "/app/CLAUDE.md": "/Users/szjanikowski/Documents/git/noesis/sdlc-projects/aj-code/evals/kg-incidents/variants/with-mcp-kg/CLAUDE.md",
+                "/logs/agent/sessions/.claude.json": "/Users/szjanikowski/Documents/git/noesis/sdlc-projects/aj-code/evals/kg-incidents/variants/with-mcp-kg/claude_config.json"
+            }
+        },
+        "env": {}
+    },
+    "environment": {
+        "type": "docker",
+        "import_path": null,
+        "force_build": false,
+        "delete": true,
+        "override_cpus": null,
+        "override_memory_mb": null,
+        "override_storage_mb": null,
+        "override_gpus": null,
+        "suppress_override_warnings": false,
+        "kwargs": {}
+    },
+    "verifier": {
+        "override_timeout_sec": null,
+        "max_timeout_sec": null,
+        "disable": false
+    },
+    "artifacts": [
+        {
+            "source": "/app",
+            "destination": "workspace"
+        }
+    ],
+    "job_id": "02261426-2854-46c5-946d-56bc24b91f13"
+}

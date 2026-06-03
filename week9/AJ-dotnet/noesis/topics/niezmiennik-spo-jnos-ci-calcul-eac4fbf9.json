@@ -1,0 +1,36 @@
+{
+  "id": "019e4fe0-21d7-7004-85fb-7204eac4fbf9",
+  "parent_id": "019e4fe0-21d7-7000-afd8-170a38623712",
+  "title": "Niezmiennik spójności CalculateUnitFootprint i CalculateTotalFootprint",
+  "title_locked": false,
+  "short_summary": "Test niezmiennika: unit_footprint × MaterialWeightKg × 10 == total. Pojedynczy zestaw parametrów odpalany przez obie metody asertuje równość w tolerancji typu decimal. Łapie klasę bugów typu „zoptymalizujmy unit pomijając breakdown\", których pojedyncze testy CalculateUnitFootprint by przepuściły.",
+  "short_summary_locked": false,
+  "long_summary": "CalculateUnitFootprint wewnętrznie deleguje obliczenie do CalculateTotalFootprint, więc istnieje matematyczny niezmiennik między wynikami obu metod: unit_footprint × MaterialWeightKg × 10 == total. Niezmiennik ten musi być asertowany przez dedykowany test spójności. Test nie wymaga pełnego frameworka property-based (FsCheck, hypothesis itp.) — wystarczy jeden lub dwa zestawy konkretnych parametrów (pełna lista wymiarów FootprintParameters produkujących nietrywialny breakdown), dla których obie metody są obliczone, a równanie sprawdzone w granicach tolerancji właściwej dla typu decimal. Wartość tego testu polega na tym, że łapie klasę bugów, których pojedyncze testy CalculateUnitFootprint by nie wychwyciły: jeśli ktoś „zoptymalizuje\" metodę pomijając wewnętrzne wywołanie CalculateTotalFootprint i policzy unit od zera, popełniając przy tym subtelny błąd (inna kolejność dzielenia, inna kolejność sumowania komponentów), test spójności wykryje rozbieżność niewidoczną z perspektywy żadnego pojedynczego testu metody. Niezmiennik wynika bezpośrednio z definicji jednostki per-100g oraz z architektury fasady — CalculateUnitFootprint to widok skali na ten sam breakdown, a nie niezależna ścieżka obliczeniowa.",
+  "long_summary_locked": false,
+  "items": [
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 18,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 19,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 20,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    }
+  ],
+  "reviewed": true,
+  "decisions_extracted": true,
+  "is_stale": false
+}

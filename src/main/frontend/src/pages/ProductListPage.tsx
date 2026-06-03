@@ -19,12 +19,8 @@ import { EmptyState } from "../components/shared/EmptyState";
 import { PhotoPlaceholder } from "../components/shared/Icons";
 import { PrimaryButton } from "../components/shared/PrimaryButton";
 import { useAuth } from "../auth/AuthContext";
-import { formatDate } from "../utils/format";
+import { formatDate, formatPrice } from "../utils/format";
 import { isValidImageUrl } from "../utils/url";
-
-function formatPrice(price: number): string {
-  return `$${price.toFixed(2)}`;
-}
 
 const CATEGORY_COLORS: Record<string, string> = {
   Televisions: "#059669",

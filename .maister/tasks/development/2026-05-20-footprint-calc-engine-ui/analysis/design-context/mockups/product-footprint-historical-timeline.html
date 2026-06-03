@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Footprint Historical Timeline — Product Design</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f5f5;
+      color: #222;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.5rem;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+    header h1 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+    #status { font-size: 0.8rem; color: #4a4; font-weight: 500; }
+    #status.disconnected { color: #a44; }
+
+    /* Screen navigation */
+    .screen-nav {
+      background: #fafafa;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 0.5rem 1.5rem;
+    }
+    .nav-screens {
+      display: flex;
+      gap: 0.25rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.25rem;
+    }
+    .nav-screen {
+      padding: 0.3rem 0.7rem;
+      border-radius: 4px;
+      text-decoration: none;
+      color: #555;
+      font-size: 0.8rem;
+      background: #eee;
+      transition: background 0.15s;
+    }
+    .nav-screen:hover { background: #ddd; }
+    .nav-screen.active { background: #333; color: #fff; }
+    .nav-prevnext {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.25rem;
+    }
+    .nav-arrow {
+      font-size: 0.8rem;
+      color: #0066cc;
+      text-decoration: none;
+    }
+    .nav-arrow:hover { text-decoration: underline; }
+
+    /* Gallery */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      padding: 1rem 0;
+    }
+    .gallery-card {
+      display: block;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.2s, transform 0.15s;
+    }
+    .gallery-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+    .gallery-card-title {
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #eee;
+      background: #fafafa;
+    }
+    .gallery-card-preview {
+      padding: 1rem;
+      max-height: 200px;
+      overflow: hidden;
+      position: relative;
+      font-size: 0.7rem;
+      transform: scale(0.8);
+      transform-origin: top left;
+      pointer-events: none;
+    }
+    .gallery-card-preview::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: linear-gradient(transparent, white);
+    }
+
+    /* Mockup content */
+    main {
+      max-width: 1200px;
+      margin: 1.5rem auto;
+      padding: 1.5rem;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      min-height: 300px;
+      position: relative;
+    }
+    .placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      color: #999;
+      font-size: 1rem;
+      text-align: center;
+      line-height: 1.8;
+    }
+    .annotation-tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 3px;
+      pointer-events: none;
+      max-width: 250px;
+      z-index: 1000;
+      line-height: 1.3;
+    }
+    .annotation-tooltip::before {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: 10px;
+      width: 8px;
+      height: 8px;
+      background: rgba(0, 0, 0, 0.75);
+      transform: rotate(45deg);
+    }
+
+    /* Interactive screen-to-screen navigation */
+    [data-screen] { cursor: pointer; }
+    [data-screen]:hover { outline: 2px solid #0066cc; outline-offset: 2px; border-radius: 2px; }
+
+    /* Annotation toggle */
+    .annotations-hidden .annotation-tooltip { display: none; }
+    #annotation-toggle {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      background: #f0f0f0;
+      cursor: pointer;
+      margin-left: 0.75rem;
+    }
+    #annotation-toggle:hover { background: #e0e0e0; }
+    #annotation-toggle.active { background: #333; color: #fff; border-color: #333; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Product Footprint Historical Timeline</h1>
+    <div>
+      <button id="annotation-toggle" class="active" title="Toggle annotation tooltips">Annotations</button>
+      <span id="status">Connected</span>
+    </div>
+  </header>
+
+  <nav class="screen-nav"><div class="nav-screens"><a href="/screen/product-footprint-detail" class="nav-screen">Product Footprint Detail</a><a href="/screen/product-footprint-comparison" class="nav-screen">Product Footprint Comparison</a><a href="/screen/product-footprint-historical-timeline" class="nav-screen active">Product Footprint Historical Timeline</a></div><div class="nav-prevnext"><a href="/screen/product-footprint-comparison" class="nav-arrow">&larr; Product Footprint Comparison</a><span></span></div></nav>
+
+  <main id="mockup-container">
+    <style>.page{font-family:-apple-system,Segoe UI,sans-serif;color:#1f2937;background:#f7f8fa;min-height:100vh}.topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;background:#fff;border-bottom:1px solid #e5e7eb}.brand{font-weight:600;font-size:15px}.crumb{color:#6b7280;font-weight:400}.actions button{margin-left:8px}.btn-ghost{background:transparent;border:1px solid #d1d5db;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px}.btn-ghost:hover{background:#f3f4f6}.btn-primary{background:#10b981;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500}.hist{max-width:1400px;margin:0 auto;padding:24px}.hist-header h1{margin:0 0 12px;font-size:22px}.hist-controls{display:flex;gap:16px;align-items:center;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:20px;flex-wrap:wrap}.hist-controls label{display:flex;align-items:center;gap:8px;font-size:12px;color:#6b7280}.hist-controls select{padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:13px}.compute-note{margin-left:auto;font-size:11px;color:#10b981;font-style:italic}.compute-note code{font-family:monospace;background:#ecfdf5;padding:1px 4px;border-radius:2px}.chart{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin-bottom:20px;display:grid;grid-template-columns:32px 1fr;gap:8px;align-items:end}.y-axis{display:flex;flex-direction:column;justify-content:space-between;height:240px;font-size:11px;color:#9ca3af;text-align:right;padding-right:4px}.chart-svg{width:100%;height:240px}.x-axis{grid-column:2;display:flex;justify-content:space-between;font-size:11px;color:#9ca3af;margin-top:4px}.events{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin-bottom:20px}.events h3{margin:0 0 12px;font-size:15px}.event-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.ev{display:flex;align-items:center;gap:12px;font-size:13px;padding:8px 12px;border-radius:6px;background:#f9fafb}.ev.seasonal{background:#fffbeb;border-left:3px solid #f59e0b}.ev.change{background:#eff6ff;border-left:3px solid #3b82f6}.ev-date{font-family:monospace;font-size:12px;color:#6b7280;min-width:90px}.ev-icon{font-size:16px}.ev-text{flex:1}.datapoints{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:20px}.datapoints h3{margin:0 0 12px;font-size:15px}.datapoints table{width:100%;border-collapse:collapse;font-size:13px}.datapoints th{text-align:left;font-weight:500;color:#6b7280;padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:11px;text-transform:uppercase}.datapoints td{padding:6px 12px;border-bottom:1px solid #f3f4f6}.datapoints code{font-family:monospace;font-size:11px;background:#f3f4f6;padding:1px 5px;border-radius:3px;color:#4b5563}.datapoints a{color:#10b981;text-decoration:none;font-size:12px}.datapoints a:hover{text-decoration:underline}.flat{color:#9ca3af}.warn{color:#f59e0b;font-family:monospace;font-size:11px}.hint{margin-top:12px;color:#6b7280;font-size:12px;font-style:italic}.hint code{font-family:monospace;background:#f3f4f6;padding:1px 4px;border-radius:2px}</style>
+<div id="mockup-content"><div class="page">
+  <header class="topbar">
+    <div class="brand">aj <span class="crumb">› Products › OFB-330 › Historical</span></div>
+    <div class="actions"><button class="btn-ghost" data-screen="product-footprint-detail">Back to detail</button><button class="btn-ghost" data-screen="product-footprint-comparison">Compare scenarios</button><button class="btn-primary">⬇ Export CSV (selected)</button></div>
+  </header>
+  <main class="hist">
+    <div class="hist-header">
+      <h1>Footprint history — OFB-330</h1>
+      <div class="hist-controls">
+        <label>Range <select><option>Last 12 months</option><option>Last 24 months</option><option>Custom...</option></select></label>
+        <label>Destination <select><option>Szczecin (570 km)</option></select></label>
+        <label>Granularity <select><option>Monthly</option><option>Weekly</option></select></label>
+        <span class="compute-note">Each datapoint is recomputed via <code>versionAt(t)</code> — historical factor versions are guaranteed immutable.</span>
+      </div>
+    </div>
+    <div class="chart">
+      <div class="y-axis"><span>6</span><span>4</span><span>2</span><span>0</span></div>
+      <svg viewBox="0 0 720 240" class="chart-svg">
+        <defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#10b981" stop-opacity=".25"/><stop offset="1" stop-color="#10b981" stop-opacity="0"/></linearGradient></defs>
+        <line x1="0" y1="180" x2="720" y2="180" stroke="#e5e7eb"/>
+        <line x1="0" y1="120" x2="720" y2="120" stroke="#e5e7eb"/>
+        <line x1="0" y1="60" x2="720" y2="60" stroke="#e5e7eb"/>
+        <path d="M 0 165 L 60 162 L 120 158 L 180 145 L 240 75 L 300 70 L 360 68 L 420 72 L 480 78 L 540 155 L 600 160 L 660 162 L 720 158" fill="none" stroke="#10b981" stroke-width="2"/>
+        <path d="M 0 165 L 60 162 L 120 158 L 180 145 L 240 75 L 300 70 L 360 68 L 420 72 L 480 78 L 540 155 L 600 160 L 660 162 L 720 158 L 720 240 L 0 240 Z" fill="url(#g)"/>
+        <circle cx="540" cy="155" r="5" fill="#fff" stroke="#10b981" stroke-width="2"/>
+        <line x1="240" y1="75" x2="480" y2="75" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 4"/>
+        <text x="360" y="68" text-anchor="middle" fill="#f59e0b" font-size="11">summer factor band (Apr-Oct)</text>
+      </svg>
+      <div class="x-axis"><span>Jul '25</span><span>Sep</span><span>Nov</span><span>Jan '26</span><span>Mar</span><span>May</span><span>Jul</span></div>
+    </div>
+    <section class="events">
+      <h3>Factor version events on the timeline</h3>
+      <ul class="event-list">
+        <li class="ev seasonal"><span class="ev-date">2026-04-01</span><span class="ev-icon">🌞</span><span class="ev-text">Summer cold-chain factors became valid (rate increased 0.045 → 0.080 kgCO₂/kg/day)</span></li>
+        <li class="ev change"><span class="ev-date">2026-03-15</span><span class="ev-icon">📋</span><span class="ev-text">Truck transport factor updated by RC module (0.00058 → 0.00062)</span></li>
+        <li class="ev seasonal"><span class="ev-date">2025-10-01</span><span class="ev-icon">❄</span><span class="ev-text">Winter cold-chain factors became valid</span></li>
+      </ul>
+    </section>
+    <section class="datapoints">
+      <h3>Datapoints</h3>
+      <table>
+        <thead><tr><th><input type="checkbox"></th><th>Date</th><th>Total kg CO₂</th><th>Factor versions</th><th>Warnings</th><th></th></tr></thead>
+        <tbody>
+          <tr><td><input type="checkbox" checked></td><td>2026-05-15</td><td>5.37</td><td><code>f3a5, a1b2, e7d9</code></td><td class="flat">—</td><td><a href="#" data-screen="product-footprint-detail">view →</a></td></tr>
+          <tr><td><input type="checkbox" checked></td><td>2026-04-15</td><td>5.34</td><td><code>f3a5, a1b2, e7d9</code></td><td class="flat">—</td><td><a href="#" data-screen="product-footprint-detail">view →</a></td></tr>
+          <tr><td><input type="checkbox"></td><td>2026-03-15</td><td>2.94</td><td><code>f3a5, a1b2, c8c0</code></td><td class="warn">FUTURE_TIMESTAMP</td><td><a href="#" data-screen="product-footprint-detail">view →</a></td></tr>
+          <tr><td><input type="checkbox"></td><td>2026-02-15</td><td>2.90</td><td><code>f3a5, a1b2, c8c0</code></td><td class="flat">—</td><td><a href="#" data-screen="product-footprint-detail">view →</a></td></tr>
+          <tr><td><input type="checkbox"></td><td>2026-01-15</td><td>2.90</td><td><code>f3a5, a1b2, c8c0</code></td><td class="flat">—</td><td><a href="#" data-screen="product-footprint-detail">view →</a></td></tr>
+        </tbody>
+      </table>
+      <p class="hint">Each row corresponds to a recompute via <code>GET /api/products/OFB-330/footprint?asOf=&lt;date&gt;</code> — historical results are deterministic.</p>
+    </section>
+  </main>
+</div></div>
+  </main>
+
+  <script>
+    // SSE client for live refresh — navigates to /latest on new screen
+    const statusEl = document.getElementById('status');
+    const evtSource = new EventSource('/events');
+    evtSource.onmessage = function(e) {
+      if (e.data === 'refresh') window.location.href = '/latest';
+    };
+    evtSource.onopen = function() {
+      statusEl.textContent = 'Connected';
+      statusEl.className = '';
+    };
+    evtSource.onerror = function() {
+      statusEl.textContent = 'Reconnecting...';
+      statusEl.className = 'disconnected';
+    };
+
+    // Annotation overlay rendering
+    const annotations = [{"selector":".compute-note","note":"Each datapoint is an independent recompute via versionAt(t) — there is NO 'historical row' lookup. Determinism comes from factor immutability."},{"selector":".ev.seasonal","note":"Seasonal factor transitions are visible in audit logs but the engine has no 'season' concept — it's pure temporal versioning."},{"selector":".btn-primary","note":"Selected datapoints → batch CSV export. Each row's correlationId is the lookup key for /api/footprints/calculations/{id}/export?format=csv"}];
+    function renderAnnotations() {
+      const container = document.getElementById('mockup-container');
+      annotations.forEach(function(ann) {
+        if (!ann.selector) return;
+        const target = container.querySelector(ann.selector);
+        if (!target) return;
+        const text = ann.note || ann.text || '';
+        if (!text) return;
+        const rect = target.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const tooltip = document.createElement('div');
+        tooltip.className = 'annotation-tooltip';
+        tooltip.textContent = text;
+        tooltip.style.top = (rect.bottom - containerRect.top + 6) + 'px';
+        tooltip.style.left = (rect.left - containerRect.left) + 'px';
+        container.appendChild(tooltip);
+      });
+    }
+    if (annotations.length > 0) requestAnimationFrame(renderAnnotations);
+
+    // Annotation toggle with localStorage persistence
+    var toggleBtn = document.getElementById('annotation-toggle');
+    var container = document.getElementById('mockup-container');
+    var annotationsVisible = localStorage.getItem('annotations-visible') !== 'false'; // default: true
+    function updateToggle() {
+      if (annotationsVisible) {
+        container.classList.remove('annotations-hidden');
+        toggleBtn.classList.add('active');
+      } else {
+        container.classList.add('annotations-hidden');
+        toggleBtn.classList.remove('active');
+      }
+    }
+    updateToggle();
+    toggleBtn.addEventListener('click', function() {
+      annotationsVisible = !annotationsVisible;
+      localStorage.setItem('annotations-visible', annotationsVisible);
+      updateToggle();
+    });
+
+    // Screen-to-screen navigation: clicking elements with data-screen="slug" navigates to that screen
+    document.getElementById('mockup-container').addEventListener('click', function(e) {
+      var target = e.target.closest('[data-screen]');
+      if (target) {
+        e.preventDefault();
+        window.location.href = '/screen/' + target.getAttribute('data-screen');
+      }
+    });
+  </script>
+</body>
+</html>

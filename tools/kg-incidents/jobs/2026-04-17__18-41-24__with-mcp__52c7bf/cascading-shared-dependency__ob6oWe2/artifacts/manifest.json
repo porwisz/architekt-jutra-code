@@ -1,0 +1,8 @@
+[
+  {
+    "source": "/app",
+    "destination": "artifacts/workspace",
+    "type": "directory",
+    "status": "ok"
+  }
+]

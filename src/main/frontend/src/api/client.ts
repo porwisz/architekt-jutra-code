@@ -12,6 +12,10 @@ export class ApiError extends Error {
   }
 }
 
+export interface RequestOpts {
+  headers?: Record<string, string>;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `/api${path}`;
   const token = localStorage.getItem("auth_token");
@@ -51,33 +55,47 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+function mergeHeaders(opts?: RequestOpts): RequestInit | undefined {
+  if (!opts?.headers) return undefined;
+  // Bearer token wins on collision: strip any caller-supplied Authorization.
+  const filtered: Record<string, string> = {};
+  for (const [key, value] of Object.entries(opts.headers)) {
+    if (key.toLowerCase() === "authorization") continue;
+    filtered[key] = value;
+  }
+  return { headers: filtered };
+}
+
 export const api = {
-  get<T>(path: string): Promise<T> {
-    return request<T>(path);
+  get<T>(path: string, _body?: undefined, opts?: RequestOpts): Promise<T> {
+    return request<T>(path, mergeHeaders(opts));
   },
 
-  post<T>(path: string, body: unknown): Promise<T> {
+  post<T>(path: string, body: unknown, opts?: RequestOpts): Promise<T> {
     return request<T>(path, {
       method: "POST",
       body: JSON.stringify(body),
+      ...mergeHeaders(opts),
     });
   },
 
-  put<T>(path: string, body: unknown): Promise<T> {
+  put<T>(path: string, body: unknown, opts?: RequestOpts): Promise<T> {
     return request<T>(path, {
       method: "PUT",
       body: JSON.stringify(body),
+      ...mergeHeaders(opts),
     });
   },
 
-  patch<T>(path: string, body: unknown): Promise<T> {
+  patch<T>(path: string, body: unknown, opts?: RequestOpts): Promise<T> {
     return request<T>(path, {
       method: "PATCH",
       body: JSON.stringify(body),
+      ...mergeHeaders(opts),
     });
   },
 
-  delete<T>(path: string): Promise<T> {
-    return request<T>(path, { method: "DELETE" });
+  delete<T>(path: string, _body?: undefined, opts?: RequestOpts): Promise<T> {
+    return request<T>(path, { method: "DELETE", ...mergeHeaders(opts) });
   },
 };

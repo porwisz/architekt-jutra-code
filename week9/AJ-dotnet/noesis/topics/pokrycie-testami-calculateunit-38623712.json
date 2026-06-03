@@ -1,0 +1,36 @@
+{
+  "id": "019e4fe0-21d7-7000-afd8-170a38623712",
+  "parent_id": null,
+  "title": "Pokrycie testami CalculateUnitFootprint",
+  "title_locked": false,
+  "short_summary": "Pull request wprowadzający CalculateUnitFootprint w FootprintFacade ma słabe pokrycie testami; review identyfikuje pięć obszarów luki: arytmetyka konwersji per-100g, guard clauses, edge cases (pusty breakdown, mała waga), niezmiennik spójności z CalculateTotalFootprint, oraz konwencje techniczne pakietu testów. Plan zamknięty: 7-8 testów XUnit, bez frameworka property-based. Testy guardów są blockerem merge'a.",
+  "short_summary_locked": false,
+  "long_summary": "Pull request wprowadzający metodę FootprintFacade.CalculateUnitFootprint posiada nieadekwatne pokrycie testami w stosunku do bliźniaczej CalculateTotalFootprint, która była pokryta wcześniej. Code review zidentyfikował pięć obszarów wymagających uzupełnienia. Pierwszy: arytmetyka konwersji per-100g (`total / (MaterialWeightKg * 10)`) wymaga trzech parametrycznych przypadków o różnych wagach i totalach, w tym jednego z mniej okrągłą liczbą blokującego błędne implementacje dzielące tylko przez dwa. Drugi: guard clauses — MaterialWeightKg <= 0 rzuca ArgumentException, null parameters rzuca ArgumentNullException — wymagają oddzielnych przypadków na zero, ściśle ujemną wartość oraz null, z asercją ParamName = \"parameters\". Trzeci: dwa edge case'y obliczenia — pusty breakdown z dodatnią wagą zwraca KgCo2(0) bez wyjątku (świadomy kontrakt), oraz bardzo mała waga 0.0001 kg zachowuje precyzję dzięki użyciu typu decimal end-to-end. Czwarty: niezmiennik spójności unit_footprint × MaterialWeightKg × 10 == total między CalculateUnitFootprint a CalculateTotalFootprint asertowany jednym lub dwoma konkretnymi zestawami parametrów. Piąty: konwencje pakietu testów — semantyczne nazwy testów wyjaśniające dlaczego test istnieje, komentarz tłumaczący znaczenie magic number 10 w przeliczeniu kg na 100-gramowe jednostki, świadoma rezygnacja z frameworka property-based (FsCheck) na rzecz zwykłych XUnit cases z opcją późniejszego upgrade'u. Łącznie 7-8 testów. Recenzentka traktuje testy guardów jako warunek konieczny — bez nich PR nie wejdzie.",
+  "long_summary_locked": false,
+  "items": [
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 0,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 1,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 23,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    }
+  ],
+  "reviewed": true,
+  "decisions_extracted": true,
+  "is_stale": false
+}

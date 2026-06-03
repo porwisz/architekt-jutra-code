@@ -1,0 +1,495 @@
+{
+  "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+  "time": "2026-05-06 14:02:00",
+  "main_topic": "Brakujące pokrycie testami metody CalculateUnitFootprint w FootprintFacade — happy path arytmetyki, guard clauses, edge cases, niezmiennik spójności z CalculateTotalFootprint",
+  "turns": [
+    {
+      "index": 0,
+      "speaker": "Anna",
+      "time": "00:14:02",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Hej, masz chwilę?",
+            "Przechodzę przez Twój PR z FootprintFacade i wydaje mi się, że mamy słabe pokrycie testami dla CalculateUnitFootprint.",
+            "Jest kilka ścieżek, których nie znajduję nigdzie w projekcie testów."
+          ],
+          "categories": [
+            "Position",
+            "Information"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "speaker": "Jan",
+      "time": "00:14:02",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Tak, spodziewałem się, że ktoś to wyłapie.",
+            "CalculateTotalFootprint ma przyzwoite pokrycie, ale tę unit'ową dorobiłem na końcu.",
+            "Czego brakuje?"
+          ],
+          "categories": [
+            "Information"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "speaker": "Anna",
+      "time": "00:14:03",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Zacznijmy od oczywistej rzeczy.",
+            "Nie ma testu sprawdzającego, czy konwersja per-100g jest w ogóle poprawna.",
+            "Metoda robi total / (MaterialWeightKg * 10), a tej arytmetyki nikt nigdzie nie weryfikuje."
+          ],
+          "categories": [
+            "Position"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "speaker": "Jan",
+      "time": "00:14:03",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Słusznie.",
+            "Prosty przykład: jeśli MaterialWeightKg wynosi 0.5, a totalny breakdown wychodzi 2.0 kg CO2, to unit footprint powinien być 0.4.",
+            "Dwa podzielone przez pięć."
+          ],
+          "categories": [
+            "Argument"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "speaker": "Anna",
+      "time": "00:14:04",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Tak.",
+            "I drugi punkt zaczepienia -- 1.0 kg z totalem 5.0 powinno dać 0.5 per 100g.",
+            "Te dwa razem przypinają wzór."
+          ],
+          "categories": [
+            "Argument"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "speaker": "Jan",
+      "time": "00:14:04",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Dodałbym jeszcze trzeci z mniej okrągłą liczbą, żeby nie przepuścić przypadkiem błędnej implementacji, która tylko dzieli przez dwa.",
+            "Coś jak 0.25 kg, total 0.6 kg CO2, oczekiwane 0.24."
+          ],
+          "categories": [
+            "Position",
+            "Argument"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "speaker": "Anna",
+      "time": "00:14:05",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Dobre.",
+            "Następna luka.",
+            "Guard clause -- MaterialWeightKg <= 0 rzuca ArgumentException.",
+            "Nie mamy nic, co to pokrywa.",
+            "Potrzebujemy co najmniej przypadku zera i ściśle ujemnego."
+          ],
+          "categories": [
+            "Position"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "speaker": "Jan",
+      "time": "00:14:05",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Oba powinny rzucać ArgumentException, a nazwa parametru w wyjątku powinna być \"parameters\", a nie \"MaterialWeightKg\".",
+            "Chcę, żeby test asertował też ParamName, bo wcześniej już mnie to ugryzło, jak się rozjechało."
+          ],
+          "categories": [
+            "Position",
+            "Argument"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "speaker": "Anna",
+      "time": "00:14:06",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Zgoda.",
+            "Skoro już o guardach -- null parameters powinno rzucać ArgumentNullException przez ArgumentNullException.",
+            "ThrowIfNull.",
+            "To też jest nieprzetestowane."
+          ],
+          "categories": [
+            "Position"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "speaker": "Jan",
+      "time": "00:14:06",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Tak.",
+            "Trywialny test, ale warto go mieć, żeby refaktor guarda nie cofnął się po cichu do NullReferenceException."
+          ],
+          "categories": [
+            "Argument"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "speaker": "Anna",
+      "time": "00:14:07",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Teraz trudniejsze.",
+            "Co się dzieje, gdy total breakdown jest zerowy?",
+            "Powiedzmy, że wszystkie komponenty są nie-aktywne dla danych parametrów, więc total wychodzi 0 kg CO2."
+          ],
+          "categories": [
+            "Position"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "speaker": "Jan",
+      "time": "00:14:07",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Wtedy unit footprint to zero.",
+            "Arytmetyka nadal działa -- 0 podzielone przez dodatnią liczbę to 0 -- i nie rzucamy wyjątku.",
+            "Myślę, że to akurat poprawne zachowanie, po prostu rzadkie."
+          ],
+          "categories": [
+            "Information",
+            "Position"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "speaker": "Anna",
+      "time": "00:14:08",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Zgoda, że poprawne, ale potrzebuje jawnego testu, bo ktoś może to później „naprawić\" guardem na pusty breakdown i złamać kontrakt.",
+            "Przypnij to."
+          ],
+          "categories": [
+            "Argument",
+            "Position"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "speaker": "Jan",
+      "time": "00:14:08",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Słuszna uwaga.",
+            "Dodam test, w którym Components jest puste, a MaterialWeightKg dodatnie -- oczekiwane KgCo2(0)."
+          ],
+          "categories": [
+            "Decision"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "speaker": "Anna",
+      "time": "00:14:09",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "A bardzo małe wagi?",
+            "Jeśli MaterialWeightKg to 0.0001 -- to ściśle dodatnia, więc guard przepuszcza -- czy matematyka nadal daje sensowny wynik, czy wybuchamy na precyzji?"
+          ],
+          "categories": [
+            "Position"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "speaker": "Jan",
+      "time": "00:14:09",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Używamy decimal od początku do końca, więc powinno być ok.",
+            "Ale tak, test brzegowy na czymś jak 0.0001 kg z totalem powiedzmy 0.001 kg CO2 -- powinien dać 1.0 per 100g.",
+            "Warto przypiąć, żeby nikt po cichu nie przełączył tego na double."
+          ],
+          "categories": [
+            "Information",
+            "Argument"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "speaker": "Anna",
+      "time": "00:14:10",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Wspomnij o tym w nazwie testu.",
+            "Coś jak CalculateUnitFootprint_PreservesPrecision_WithVerySmallMaterialWeight.",
+            "Nazwy, które tłumaczą *dlaczego*, są tu warte złota."
+          ],
+          "categories": [
+            "Position"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "speaker": "Jan",
+      "time": "00:14:10",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Zrobię.",
+            "Coś jeszcze?"
+          ],
+          "categories": [
+            "Decision"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "speaker": "Anna",
+      "time": "00:14:11",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Jeszcze jedna rzecz, którą chcę pokryć.",
+            "Relacja między tymi dwiema metodami.",
+            "CalculateUnitFootprint wewnętrznie woła CalculateTotalFootprint i jest niezmiennik: unit_footprint * MaterialWeightKg * 10 powinno równać się totalowi.",
+            "Powinniśmy mieć test, który asertuje, że obie metody się zgadzają."
+          ],
+          "categories": [
+            "Position"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "speaker": "Jan",
+      "time": "00:14:11",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Masz na myśli test w stylu property-based?",
+            "Te same parametry, odpalamy obie, sprawdzamy relację?"
+          ],
+          "categories": [
+            "Information"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "speaker": "Anna",
+      "time": "00:14:12",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Tak.",
+            "Nie musi być pełnym frameworkiem property-based, wystarczy jeden lub dwa zestawy parametrów, gdzie liczymy obie i asertujemy, że równanie się zgadza w granicach tolerancji decimal.",
+            "To jest taki test, który łapie całą klasę bugów -- np. Jeśli ktoś „zoptymalizuje\" CalculateUnitFootprint pomijając breakdown i licząc od zera, a wyjdzie mu subtelnie źle."
+          ],
+          "categories": [
+            "Position",
+            "Argument"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 21,
+      "speaker": "Jan",
+      "time": "00:14:12",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Dobry.",
+            "Dodałbym też -- skoro unit basis to MaterialWeightKg * 10, to ta dziesiątka jest magic number.",
+            "Jeśli kiedyś ktoś zmieni definicję jednostki z per-100g na per-kg, test asertujący „0.5 kg, total 2.0, oczekiwane 0.4\" walnie głośno.",
+            "Więc to działa też jako regression guard na samą definicję jednostki."
+          ],
+          "categories": [
+            "Argument"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "speaker": "Anna",
+      "time": "00:14:13",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Tak.",
+            "Warto komentarz w teście tłumaczący, skąd 10.",
+            "Inaczej ktoś przeczyta i pomyśli, że to arbitralne."
+          ],
+          "categories": [
+            "Position"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 23,
+      "speaker": "Jan",
+      "time": "00:14:13",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "OK, lecę pisać.",
+            "Podsumujmy -- happy path arytmetyki z trzema parami waga/total, MaterialWeightKg = 0 rzuca, ujemne rzuca, null rzuca, pusty breakdown daje zero, bardzo mała waga zachowuje precyzję i test spójności łączący unit i total.",
+            "W sumie siedem albo osiem testów."
+          ],
+          "categories": [
+            "Decision"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 24,
+      "speaker": "Anna",
+      "time": "00:14:14",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Brzmi sensownie.",
+            "Pomińmy framework property-based na razie, niech będą zwykłe XUnit cases.",
+            "Jeśli później zechcemy dodać FsCheck albo coś podobnego, możemy wtedy podnieść ten test spójności."
+          ],
+          "categories": [
+            "Decision"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 25,
+      "speaker": "Jan",
+      "time": "00:14:14",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Zgoda.",
+            "Testy będę miał do końca jutra, wtedy ponownie poproszę o review."
+          ],
+          "categories": [
+            "Irrelevant"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 26,
+      "speaker": "Anna",
+      "time": "00:14:14",
+      "idea_units": [
+        {
+          "index": 0,
+          "sentences": [
+            "Dzięki.",
+            "Szczególnie testy guardów -- nie chcę, żeby to wjeżdżało bez nich."
+          ],
+          "categories": [
+            "Position"
+          ]
+        }
+      ]
+    }
+  ]
+}

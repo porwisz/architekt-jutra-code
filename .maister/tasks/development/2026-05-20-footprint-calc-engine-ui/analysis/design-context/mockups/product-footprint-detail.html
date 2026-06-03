@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Footprint Detail — Product Design</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f5f5;
+      color: #222;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.5rem;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+    header h1 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+    #status { font-size: 0.8rem; color: #4a4; font-weight: 500; }
+    #status.disconnected { color: #a44; }
+
+    /* Screen navigation */
+    .screen-nav {
+      background: #fafafa;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 0.5rem 1.5rem;
+    }
+    .nav-screens {
+      display: flex;
+      gap: 0.25rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.25rem;
+    }
+    .nav-screen {
+      padding: 0.3rem 0.7rem;
+      border-radius: 4px;
+      text-decoration: none;
+      color: #555;
+      font-size: 0.8rem;
+      background: #eee;
+      transition: background 0.15s;
+    }
+    .nav-screen:hover { background: #ddd; }
+    .nav-screen.active { background: #333; color: #fff; }
+    .nav-prevnext {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.25rem;
+    }
+    .nav-arrow {
+      font-size: 0.8rem;
+      color: #0066cc;
+      text-decoration: none;
+    }
+    .nav-arrow:hover { text-decoration: underline; }
+
+    /* Gallery */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      padding: 1rem 0;
+    }
+    .gallery-card {
+      display: block;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.2s, transform 0.15s;
+    }
+    .gallery-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+    .gallery-card-title {
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #eee;
+      background: #fafafa;
+    }
+    .gallery-card-preview {
+      padding: 1rem;
+      max-height: 200px;
+      overflow: hidden;
+      position: relative;
+      font-size: 0.7rem;
+      transform: scale(0.8);
+      transform-origin: top left;
+      pointer-events: none;
+    }
+    .gallery-card-preview::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: linear-gradient(transparent, white);
+    }
+
+    /* Mockup content */
+    main {
+      max-width: 1200px;
+      margin: 1.5rem auto;
+      padding: 1.5rem;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      min-height: 300px;
+      position: relative;
+    }
+    .placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      color: #999;
+      font-size: 1rem;
+      text-align: center;
+      line-height: 1.8;
+    }
+    .annotation-tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 3px;
+      pointer-events: none;
+      max-width: 250px;
+      z-index: 1000;
+      line-height: 1.3;
+    }
+    .annotation-tooltip::before {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: 10px;
+      width: 8px;
+      height: 8px;
+      background: rgba(0, 0, 0, 0.75);
+      transform: rotate(45deg);
+    }
+
+    /* Interactive screen-to-screen navigation */
+    [data-screen] { cursor: pointer; }
+    [data-screen]:hover { outline: 2px solid #0066cc; outline-offset: 2px; border-radius: 2px; }
+
+    /* Annotation toggle */
+    .annotations-hidden .annotation-tooltip { display: none; }
+    #annotation-toggle {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      background: #f0f0f0;
+      cursor: pointer;
+      margin-left: 0.75rem;
+    }
+    #annotation-toggle:hover { background: #e0e0e0; }
+    #annotation-toggle.active { background: #333; color: #fff; border-color: #333; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Product Footprint Detail</h1>
+    <div>
+      <button id="annotation-toggle" class="active" title="Toggle annotation tooltips">Annotations</button>
+      <span id="status">Connected</span>
+    </div>
+  </header>
+
+  
+
+  <main id="mockup-container">
+    <style>.page{font-family:-apple-system,Segoe UI,sans-serif;color:#1f2937;background:#f7f8fa;min-height:100vh}.topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;background:#fff;border-bottom:1px solid #e5e7eb}.brand{font-weight:600;font-size:15px}.crumb{color:#6b7280;font-weight:400}.actions button{margin-left:8px}.btn-ghost{background:transparent;border:1px solid #d1d5db;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px}.btn-ghost:hover{background:#f3f4f6}.btn-primary{background:#10b981;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500}.layout{display:grid;grid-template-columns:280px 1fr;gap:24px;padding:24px;max-width:1400px;margin:0 auto}.product-card{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:20px}.product-thumb{font-size:64px;text-align:center;margin-bottom:12px}.product-card h2{margin:0 0 4px;font-size:18px}.sku{color:#6b7280;font-size:13px;margin-bottom:16px}.product-attrs{margin:0;font-size:13px}.product-attrs dt{color:#6b7280;margin-top:8px}.product-attrs dd{margin:2px 0 0;font-weight:500}.main-pane{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:24px}.context-bar{display:flex;gap:16px;align-items:end;padding-bottom:20px;border-bottom:1px solid #e5e7eb;margin-bottom:20px;flex-wrap:wrap}.context-bar label{display:flex;flex-direction:column;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;gap:4px}.context-bar input,.context-bar select{padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px}.summary-card{display:flex;justify-content:space-between;align-items:baseline;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:20px;margin-bottom:24px}.summary-value .big{font-size:48px;font-weight:600;color:#065f46}.summary-value .unit{font-size:18px;color:#047857;margin-left:8px}.summary-meta{text-align:right;font-size:12px;color:#047857;line-height:1.6}.corr{font-family:monospace;color:#065f46}.bars{margin-bottom:24px}.bar-row{display:grid;grid-template-columns:140px 1fr 60px 80px;align-items:center;gap:12px;padding:6px 0}.bar-label{font-size:13px}.bar{background:#10b981;height:14px;border-radius:3px}.bar-val{font-family:monospace;font-size:13px;text-align:right}.scope{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}.scope1{background:#fef3c7;color:#92400e}.scope2{background:#dbeafe;color:#1e40af}.scope3{background:#e0e7ff;color:#3730a3}.scope-mixed{background:#f3f4f6;color:#4b5563}.section-h{margin:24px 0 12px;font-size:15px}.breakdown{width:100%;border-collapse:collapse;font-size:13px}.breakdown th{text-align:left;font-weight:500;color:#6b7280;padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:11px;text-transform:uppercase;letter-spacing:.04em}.breakdown td{padding:6px 12px;border-bottom:1px solid #f3f4f6}.breakdown tr.composite{background:#f9fafb;font-weight:500}.breakdown tr.leaf:hover{background:#f9fafb}.indent{padding-left:32px !important}.breakdown td:nth-child(2){font-family:monospace;text-align:right}.hint{color:#6b7280;font-size:12px;margin-top:12px;font-style:italic}</style>
+<div id="mockup-content"><div class="page">
+  <header class="topbar">
+    <div class="brand">aj <span class="crumb">› Products › OFB-330</span></div>
+    <div class="actions"><button class="btn-ghost">Share</button><button class="btn-ghost" data-screen="product-footprint-comparison">Compare scenarios</button><button class="btn-ghost" data-screen="product-footprint-historical-timeline">View history</button></div>
+  </header>
+  <main class="layout">
+    <aside class="product-card">
+      <div class="product-thumb">🫐</div>
+      <h2>Organic Frozen Berries 500g</h2>
+      <div class="sku">SKU OFB-330</div>
+      <dl class="product-attrs">
+        <dt>Material weight</dt><dd>0.5 kg</dd>
+        <dt>Supplier distance</dt><dd>2,800 km</dd>
+        <dt>Refrigerated</dt><dd>Yes</dd>
+      </dl>
+    </aside>
+    <section class="main-pane">
+      <div class="context-bar">
+        <label>Date <input type="date" value="2026-07-15"></label>
+        <label>Destination <select><option>Szczecin (570 km)</option><option>Warsaw (15 km)</option><option>Kraków (300 km)</option></select></label>
+        <label>Unit <select><option>Per product</option><option>Per 100g</option></select></label>
+        <button class="btn-primary">Recalculate</button>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value"><span class="big">5.37</span><span class="unit">kg CO₂</span></div>
+        <div class="summary-meta">Calculated 2026-05-20 14:32:11 UTC<br><span class="corr">correlationId: f3a5-4c9e-...</span></div>
+      </div>
+      <div class="bars">
+        <div class="bar-row"><span class="bar-label">Materials</span><div class="bar" style="width:25%"></div><span class="bar-val">1.35</span><span class="scope scope3">Scope 3</span></div>
+        <div class="bar-row"><span class="bar-label">Transport</span><div class="bar" style="width:35%"></div><span class="bar-val">1.88</span><span class="scope scope-mixed">mixed</span></div>
+        <div class="bar-row"><span class="bar-label">Packaging</span><div class="bar" style="width:8%"></div><span class="bar-val">0.42</span><span class="scope scope3">Scope 3</span></div>
+        <div class="bar-row"><span class="bar-label">Cold storage</span><div class="bar" style="width:32%"></div><span class="bar-val">1.72</span><span class="scope scope2">Scope 2</span></div>
+      </div>
+      <h3 class="section-h">Breakdown</h3>
+      <table class="breakdown">
+        <thead><tr><th>Component</th><th>kg CO₂</th><th>Scope</th><th>Factor</th><th>Valid from</th></tr></thead>
+        <tbody>
+          <tr class="composite"><td>▼ Materials</td><td>1.3500</td><td>—</td><td>—</td><td>—</td></tr>
+          <tr class="leaf"><td class="indent">raw-material</td><td>0.4500</td><td><span class="scope scope3">3</span></td><td>0.9000</td><td>2026-01-01</td></tr>
+          <tr class="leaf"><td class="indent">processing</td><td>0.9000</td><td><span class="scope scope1">1</span></td><td>1.8000</td><td>2026-01-01</td></tr>
+          <tr class="composite"><td>▼ Transport</td><td>1.8800</td><td>—</td><td>—</td><td>—</td></tr>
+          <tr class="leaf"><td class="indent">supplier-to-warehouse</td><td>1.6240</td><td><span class="scope scope3">3</span></td><td>0.00058</td><td>2026-04-01</td></tr>
+          <tr class="leaf"><td class="indent">warehouse-to-customer</td><td>0.2470</td><td><span class="scope scope3">3</span></td><td>0.00058</td><td>2026-04-01</td></tr>
+          <tr class="leaf"><td class="indent">last-mile</td><td>0.0090</td><td><span class="scope scope3">3</span></td><td>0.00060</td><td>2026-04-01</td></tr>
+          <tr class="leaf"><td>packaging</td><td>0.4200</td><td><span class="scope scope3">3</span></td><td>0.42</td><td>2026-01-01</td></tr>
+          <tr class="composite"><td>▼ Cold storage</td><td>1.7200</td><td>—</td><td>—</td><td>—</td></tr>
+          <tr class="leaf"><td class="indent">warehouse-refrigeration</td><td>0.5600</td><td><span class="scope scope2">2</span></td><td>0.080</td><td>2026-04-01</td></tr>
+          <tr class="leaf"><td class="indent">transport-refrigeration</td><td>1.0500</td><td><span class="scope scope2">2</span></td><td>0.00031</td><td>2026-04-01</td></tr>
+          <tr class="leaf"><td class="indent">last-mile-cold-chain</td><td>0.1100</td><td><span class="scope scope3">3</span></td><td>0.00073</td><td>2026-04-01</td></tr>
+        </tbody>
+      </table>
+      <p class="hint">Hover a row to see the factor source. Click a composite to fold it.</p>
+    </section>
+  </main>
+</div></div>
+  </main>
+
+  <script>
+    // SSE client for live refresh — navigates to /latest on new screen
+    const statusEl = document.getElementById('status');
+    const evtSource = new EventSource('/events');
+    evtSource.onmessage = function(e) {
+      if (e.data === 'refresh') window.location.href = '/latest';
+    };
+    evtSource.onopen = function() {
+      statusEl.textContent = 'Connected';
+      statusEl.className = '';
+    };
+    evtSource.onerror = function() {
+      statusEl.textContent = 'Reconnecting...';
+      statusEl.className = 'disconnected';
+    };
+
+    // Annotation overlay rendering
+    const annotations = [{"selector":".summary-card .corr","note":"correlationId is also the key for the CSV export endpoint"},{"selector":".breakdown tr.leaf:first-child","note":"Each leaf row carries factor + validFrom — directly from FootprintBreakdown.LeafNode"},{"selector":".scope3","note":"Scope from LeafNode.scope (1/2/3)"}];
+    function renderAnnotations() {
+      const container = document.getElementById('mockup-container');
+      annotations.forEach(function(ann) {
+        if (!ann.selector) return;
+        const target = container.querySelector(ann.selector);
+        if (!target) return;
+        const text = ann.note || ann.text || '';
+        if (!text) return;
+        const rect = target.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const tooltip = document.createElement('div');
+        tooltip.className = 'annotation-tooltip';
+        tooltip.textContent = text;
+        tooltip.style.top = (rect.bottom - containerRect.top + 6) + 'px';
+        tooltip.style.left = (rect.left - containerRect.left) + 'px';
+        container.appendChild(tooltip);
+      });
+    }
+    if (annotations.length > 0) requestAnimationFrame(renderAnnotations);
+
+    // Annotation toggle with localStorage persistence
+    var toggleBtn = document.getElementById('annotation-toggle');
+    var container = document.getElementById('mockup-container');
+    var annotationsVisible = localStorage.getItem('annotations-visible') !== 'false'; // default: true
+    function updateToggle() {
+      if (annotationsVisible) {
+        container.classList.remove('annotations-hidden');
+        toggleBtn.classList.add('active');
+      } else {
+        container.classList.add('annotations-hidden');
+        toggleBtn.classList.remove('active');
+      }
+    }
+    updateToggle();
+    toggleBtn.addEventListener('click', function() {
+      annotationsVisible = !annotationsVisible;
+      localStorage.setItem('annotations-visible', annotationsVisible);
+      updateToggle();
+    });
+
+    // Screen-to-screen navigation: clicking elements with data-screen="slug" navigates to that screen
+    document.getElementById('mockup-container').addEventListener('click', function(e) {
+      var target = e.target.closest('[data-screen]');
+      if (target) {
+        e.preventDefault();
+        window.location.href = '/screen/' + target.getAttribute('data-screen');
+      }
+    });
+  </script>
+</body>
+</html>

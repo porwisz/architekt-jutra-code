@@ -1,0 +1,50 @@
+{
+  "id": "019e4fe0-21d7-7002-bbab-c5872b76ecbf",
+  "parent_id": "019e4fe0-21d7-7000-afd8-170a38623712",
+  "title": "Guard clauses dla parametrów wejściowych",
+  "title_locked": false,
+  "short_summary": "Pokrycie trzech guard clauses w CalculateUnitFootprint: MaterialWeightKg = 0 oraz ujemna wartość rzucają ArgumentException, null parameters rzuca ArgumentNullException przez ArgumentNullException.ThrowIfNull. Testy asertują typ wyjątku oraz ParamName = \"parameters\". Recenzentka traktuje pokrycie guardów jako warunek konieczny merge'a.",
+  "short_summary_locked": false,
+  "long_summary": "CalculateUnitFootprint w FootprintFacade posiada trzy guard clauses, które przed pull requestem nie miały żadnego pokrycia testami. Pierwszy guard odrzuca MaterialWeightKg <= 0 rzucając ArgumentException — wymaga dwóch oddzielnych przypadków testowych: dokładnie 0 oraz ściśle ujemna wartość (np. -0.5), żeby wykluczyć implementację która przepuszcza zero lub odwrotnie. Drugi guard odrzuca null parameters rzucając ArgumentNullException zgodnie z idiomem ArgumentNullException.ThrowIfNull(parameters). Każdy test guarda musi asertować nie tylko sam typ wyjątku, ale również jego pole ParamName, które ma być stałą literalną \"parameters\" — nie \"MaterialWeightKg\" — ponieważ parametr metody nazywa się parameters, a MaterialWeightKg jest tylko wewnętrznym polem. Nazewnictwo ParamName wcześniej rozjechało się w innych miejscach kodu i autor PR explicite nie chce powtarzać tego błędu. Test null-guarda, choć trywialny, jest niezbędny aby refaktor kolejnego programisty nie cofnął się po cichu do NullReferenceException (np. usuwając wywołanie ThrowIfNull przy okazji innej zmiany). Recenzentka stawia testy guardów jako blocker merge'a — żaden inny aspekt PR nie wjedzie do mastera bez kompletu tych testów.",
+  "long_summary_locked": false,
+  "items": [
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 6,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 7,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 8,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 9,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 26,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    }
+  ],
+  "reviewed": true,
+  "decisions_extracted": true,
+  "is_stale": false
+}

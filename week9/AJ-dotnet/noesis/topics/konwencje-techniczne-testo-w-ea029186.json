@@ -1,0 +1,43 @@
+{
+  "id": "019e4fe0-21d7-7005-a322-3e86ea029186",
+  "parent_id": "019e4fe0-21d7-7000-afd8-170a38623712",
+  "title": "Konwencje techniczne testów",
+  "title_locked": false,
+  "short_summary": "Konwencje dla pakietu testów CalculateUnitFootprint: nazwy w stylu `Method_PreservesX_UnderY` wyjaśniające dlaczego test istnieje; komentarz w teście tłumaczący magic number 10 (przeliczenie kg na 100-gramowe jednostki); rezygnacja z FsCheck na rzecz zwykłych XUnit cases z opcją podniesienia testu spójności w przyszłości.",
+  "short_summary_locked": false,
+  "long_summary": "Pakiet nowych testów CalculateUnitFootprint stosuje trzy konwencje ustalone w PR review. Pierwsza: konwencja nazewnictwa — nazwa testu wyjaśnia DLACZEGO test istnieje, nie tylko CO sprawdza. Wzorzec to `CalculateUnitFootprint_PreservesPrecision_WithVerySmallMaterialWeight` zamiast bezbarwnego `CalculateUnitFootprint_SmallWeight`. Druga: komentarze w kodzie testu wyjaśniające źródło magic numbers. Stała 10 w wyrażeniu `MaterialWeightKg * 10` ma jasny sens (przeliczenie kilograma na 100-gramowe jednostki — 10 setek-gramów w kilogramie), ale czytelnik testu może uznać ją za arbitralną; wymagany jest jednolinijkowy komentarz. Trzecia: świadoma rezygnacja z frameworka property-based (FsCheck lub podobne) dla testu niezmiennika spójności między CalculateUnitFootprint a CalculateTotalFootprint. Pojedynczy niezmiennik nie uzasadnia dodawania nowej zależności ani konfiguracji frameworka — jeden lub dwa zestawy konkretnych parametrów w zwykłym XUnit case są wystarczające. Konwencja jest jawnie warunkowa: jeśli FsCheck zostanie kiedyś wprowadzony do projektu z innych powodów, test spójności jest naturalnym kandydatem do podniesienia do pełnego property-based testu.",
+  "long_summary_locked": false,
+  "items": [
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 16,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 17,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 22,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 24,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    }
+  ],
+  "reviewed": true,
+  "decisions_extracted": true,
+  "is_stale": false
+}

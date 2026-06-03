@@ -1,0 +1,50 @@
+{
+  "id": "019e4fe0-21d7-7001-b6f1-4fdd0864410d",
+  "parent_id": "019e4fe0-21d7-7000-afd8-170a38623712",
+  "title": "Testy happy path konwersji per-100g",
+  "title_locked": false,
+  "short_summary": "Trzy parametryczne przypadki testowe weryfikujące arytmetykę konwersji `total / (MaterialWeightKg * 10)` w CalculateUnitFootprint. Dwie pary z okrągłymi liczbami fiksują liniowość wzoru, trzecia z mniej okrągłą blokuje błędne implementacje dzielące tylko przez dwa. Komplet działa też jako regression guard na samą definicję jednostki per-100g (stała 10).",
+  "short_summary_locked": false,
+  "long_summary": "CalculateUnitFootprint w FootprintFacade wykonuje konwersję `total / (MaterialWeightKg * 10)`, przeliczając kg CO₂ całego produktu na kg CO₂ na 100 g materiału. Arytmetyka tej konwersji nie była wcześniej weryfikowana żadnym testem. Pokrycie tej ścieżki wymaga trzech parametrycznych przypadków: MaterialWeightKg = 0.5 z total = 2.0 kg CO₂ oczekuje 0.4; MaterialWeightKg = 1.0 z total = 5.0 kg CO₂ oczekuje 0.5; MaterialWeightKg = 0.25 z total = 0.6 kg CO₂ oczekuje 0.24. Dwie pierwsze pary z okrągłymi liczbami fiksują liniowość formuły. Trzecia, z mniej okrągłą liczbą, chroni przed błędnymi implementacjami, które przypadkowo dzielą tylko przez dwa (lub inną pojedynczą stałą) i przepuszczają oba pierwsze przypadki nie ujawniając błędu. Komplet trzech testów pełni również rolę regression guard na samą definicję jednostki — stała 10 w mianowniku reprezentuje przeliczenie kilograma na 100-gramowe jednostki (10 setek-gramów w kilogramie). Jeśli ktoś kiedyś zmieni definicję z per-100g na per-kg, test asertujący `0.5 kg / 2.0 / 0.4` natychmiast wskaże regresję, ponieważ wynik zmieniłby się na 4.0. Testy te są fundamentem pokrycia metody — bez nich żadne inne testy nie chronią przed cichą zmianą semantyki konwersji.",
+  "long_summary_locked": false,
+  "items": [
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 2,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 3,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 4,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 5,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 21,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    }
+  ],
+  "reviewed": true,
+  "decisions_extracted": true,
+  "is_stale": false
+}

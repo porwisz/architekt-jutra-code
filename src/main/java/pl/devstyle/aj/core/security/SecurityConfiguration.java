@@ -108,6 +108,7 @@ public class SecurityConfiguration {
                         // READ permission (app: READ, mcp: mcp:read)
                         .requestMatchers(HttpMethod.GET, "/api/categories/**").hasAnyAuthority("PERMISSION_READ", "PERMISSION_mcp:read")
                         .requestMatchers(HttpMethod.GET, "/api/products/**").hasAnyAuthority("PERMISSION_READ", "PERMISSION_mcp:read")
+                        .requestMatchers(HttpMethod.GET, "/api/footprints/calculations/*/export").hasAnyAuthority("PERMISSION_READ", "PERMISSION_mcp:read")
                         .requestMatchers(HttpMethod.GET, "/api/plugins").hasAuthority("PERMISSION_READ")
                         .requestMatchers(HttpMethod.GET, "/api/plugins/*").hasAuthority("PERMISSION_READ")
                         .requestMatchers(HttpMethod.GET, "/api/plugins/*/objects/**").hasAuthority("PERMISSION_READ")

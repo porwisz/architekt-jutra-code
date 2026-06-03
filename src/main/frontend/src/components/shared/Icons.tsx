@@ -1,6 +1,7 @@
 import {
   Package,
   LayoutList,
+  Leaf,
   Plug,
   Warehouse,
   Image as ImageIcon,
@@ -12,12 +13,14 @@ export const ProductsIcon = Package;
 export const CategoriesIcon = LayoutList;
 export const PluginsIcon = Plug;
 export const WarehouseIcon = Warehouse;
+export const FootprintIcon = Leaf;
 
 const ICON_MAP: Record<string, LucideIcon> = {
   package: Package,
   "layout-list": LayoutList,
   plug: Plug,
   warehouse: Warehouse,
+  footprint: Leaf,
 };
 
 export function resolveIcon(name?: string): LucideIcon {

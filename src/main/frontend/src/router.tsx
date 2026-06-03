@@ -5,6 +5,9 @@ import { CategoryFormPage } from "./pages/CategoryFormPage";
 import { ProductListPage } from "./pages/ProductListPage";
 import { ProductFormPage } from "./pages/ProductFormPage";
 import { ProductDetailPage } from "./pages/ProductDetailPage";
+import { ProductFootprintPage } from "./pages/ProductFootprintPage";
+import { FootprintComparisonPage } from "./pages/FootprintComparisonPage";
+import { CarbonFootprintLandingPage } from "./pages/CarbonFootprintLandingPage";
 import { PluginListPage } from "./pages/PluginListPage";
 import { PluginDetailPage } from "./pages/PluginDetailPage";
 import { PluginFormPage } from "./pages/PluginFormPage";
@@ -46,6 +49,9 @@ export const router = createBrowserRouter([
       { path: "products/new", element: <ProductFormPage /> },
       { path: "products/:id", element: <ProductDetailPage /> },
       { path: "products/:id/edit", element: <ProductFormPage /> },
+      { path: "products/:id/footprint", element: <ProductFootprintPage /> },
+      { path: "products/:id/footprint/compare", element: <FootprintComparisonPage /> },
+      { path: "carbon-footprint", element: <CarbonFootprintLandingPage /> },
       { path: "categories", element: <CategoryListPage /> },
       { path: "categories/new", element: <CategoryFormPage /> },
       { path: "categories/:id/edit", element: <CategoryFormPage /> },

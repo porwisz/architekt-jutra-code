@@ -1,0 +1,1246 @@
+{
+  "id": "019e4fa7-28b6-7000-9c5b-b6576e3108da",
+  "name": "footprint-calculation-engine",
+  "name_locked": false,
+  "description": "Silnik obliczeniowy carbon footprint produktu — pure-function module zwracający pełne, audytowalne rozbicie kg CO₂ dla danego produktu w danym kontekście (destynacja, data). Architektura mapuje Pricing Archetype Level 7: drzewo komponentów, wersjonowane temporalnie współczynniki emisji, kontekstowa applicability, reprodukowalność historyczna przez versionAt(timestamp).",
+  "description_locked": false,
+  "date": "2026-05-22",
+  "actors": [],
+  "boundedContexts": {
+    "added": [
+      {
+        "name": "FootprintCalculation",
+        "name_locked": false,
+        "description": "Bounded Context obliczania śladu węglowego produktu. Bezstanowy, czysto obliczeniowy — nie zarządza współczynnikami emisji (osobny moduł Emission Factor Management, out of scope), nie zna ratingu eko (Eco Rating, downstream), nie odpowiada za prezentację. Zewnętrzne zależności są portami: EmissionFactorPort (odczyt rate z modułu RC), ComponentRepository (odczyt drzewa komponentów dla productId). Out-of-scope BC wymienione w drafcie: Emission Factor Management, Emission Budget Ledger, Historical Audit, Product Catalog, Eco Rating, Frontend.",
+        "description_locked": false,
+        "modules": {
+          "added": [
+            {
+              "name": "ComponentTree",
+              "name_locked": false,
+              "description": "Strukturalna dekompozycja śladu węglowego produktu: hierarchia komponentów (liście + kompozyty), ich applicability i temporalne wersjonowanie współczynników. Drzewo jest statyczne dla typu produktu (1:1); zmienne w czasie są tylko wartości rate na liściach przez SimpleComponentVersion.",
+              "description_locked": false,
+              "buildingBlocks": {
+                "added": [
+                  {
+                    "name": "Component",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Wspólna abstrakcja dla węzłów drzewa kompozycji śladu węglowego — kompozytów (CompositeComponent) i liści (SimpleComponent). Pozwala kolekcjom dzieci CompositeComponent zawierać heterogeniczne typy. Każdy Component ma stabilny ComponentId i Applicability określającą, kiedy jest aktywny w danym kontekście obliczeniowym.",
+                    "description_locked": false,
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "id",
+                          "name_locked": false,
+                          "type": "ComponentId",
+                          "type_locked": false,
+                          "description": null,
+                          "description_locked": false
+                        },
+                        {
+                          "name": "applicability",
+                          "name_locked": false,
+                          "type": "Applicability",
+                          "type_locked": false,
+                          "description": "Warunek aktywności komponentu w kontekście obliczenia. Konkretny typ to AlwaysApplicable lub RequiresRefrigeration.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "ComponentId",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Stabilny, czytelny identyfikator komponentu w drzewie (np. 'raw-material', 'cold-storage', 'warehouse-refrigeration'). Niezmienny. Używany w FootprintBreakdown jako etykieta węzła oraz w EmissionFactorPort.GetActiveRate do skojarzenia komponentu z jego współczynnikiem.",
+                    "description_locked": false,
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "value",
+                          "name_locked": false,
+                          "type": "String",
+                          "type_locked": false,
+                          "description": null,
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "Applicability",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Bazowa abstrakcja warunku aktywności komponentu w konkretnym kontekście obliczenia FootprintParameters. Konkretne implementacje (AlwaysApplicable, RequiresRefrigeration) wyrażają semantykę przez metodę isSatisfiedBy(parameters) zwracającą Boolean — operacja nie jest modelowana jako formalny Behaviour, ponieważ zwraca primitive. Regułę 'NieaktywnyKompozytJestWykluczonyZBreakdown' opisuje zachowanie konsumenta wyniku tego predykatu.",
+                    "description_locked": false
+                  },
+                  {
+                    "name": "AlwaysApplicable",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Predykat tożsamościowy — isSatisfiedBy(parameters) zawsze zwraca true. Stosowany dla komponentów, które są aktywne dla wszystkich produktów niezależnie od kontekstu: materials, transport, packaging i ich pod-drzewa. W praktyce singleton — wszystkie instancje są równoważne.",
+                    "description_locked": false,
+                    "implements": [
+                      "Applicability"
+                    ]
+                  },
+                  {
+                    "name": "RequiresRefrigeration",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Predykat aktywujący komponent tylko gdy FootprintParameters.requiresRefrigeration == true. Stosowany na kompozycie 'cold-storage' w drzewie produktowym — jego pod-drzewo (warehouse-refrigeration, transport-refrigeration, last-mile-cold-chain) jest CAŁKOWICIE wykluczone z breakdown dla produktów niewymagających chłodzenia (a nie pokazane jako kgCO2 = 0).",
+                    "description_locked": false,
+                    "implements": [
+                      "Applicability"
+                    ]
+                  },
+                  {
+                    "name": "SimpleComponent",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Liść drzewa komponentów reprezentujący pojedynczy 'typ kosztu emisyjnego' — raw-material, processing, supplier-to-warehouse, packaging, warehouse-refrigeration itp. Posiada uporządkowaną kolekcję historycznych wersji (SimpleComponentVersion); w momencie obliczenia silnik wybiera jedną wersję przez VersionAt(timestamp). Pole quantitySource to nazwa pola w FootprintParameters, z którego brana jest wartość quantity dla kalkulatora (np. 'materialWeight', 'supplierDistance'). Pole scope (EmissionScope) to metadata Scope 1/2/3 — bez wpływu na obliczenie, kopiowana do liścia breakdown.",
+                    "description_locked": false,
+                    "implements": [
+                      "Component"
+                    ],
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "scope",
+                          "name_locked": false,
+                          "type": "EmissionScope",
+                          "type_locked": false,
+                          "description": null,
+                          "description_locked": false
+                        },
+                        {
+                          "name": "quantitySource",
+                          "name_locked": false,
+                          "type": "String",
+                          "type_locked": false,
+                          "description": "Nazwa pola FootprintParameters, z którego brana jest quantity dla EmissionCalculator (np. 'materialWeight', 'supplierDistance', 'storageDays').",
+                          "description_locked": false
+                        },
+                        {
+                          "name": "versions",
+                          "name_locked": false,
+                          "type": "SimpleComponentVersion",
+                          "type_locked": false,
+                          "description": null,
+                          "description_locked": false,
+                          "collection": true
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    },
+                    "behaviours": {
+                      "added": [
+                        {
+                          "name": "VersionAt",
+                          "name_locked": false,
+                          "description": "Wybiera SimpleComponentVersion obowiązującą w danym momencie (znaczniku czasu). Zwraca tę wersję, dla której validity.validFrom ≤ timestamp < validity.validTo. Strategia REJECT_OVERLAPPING gwarantowana na poziomie warstwy zarządzającej wersjami (poza scope tego silnika) — w każdej chwili istnieje DOKŁADNIE jedna wersja obowiązująca. Jeśli żadna wersja nie obowiązuje w danym momencie (np. zapytanie sprzed pierwszej wersji), operacja zwraca błąd zamiast wartości domyślnej — komponent obowiązuje strukturalnie, ale nie ma jak go policzyć. Wynik jest natychmiast konsumowany przez CalculateTotalFootprint w celu wyciągnięcia rate dla EmissionCalculator.Calculate.",
+                          "description_locked": false,
+                          "type": "Query",
+                          "type_locked": false,
+                          "input": {
+                            "added": [
+                              "Timestamp"
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "output": {
+                            "added": [
+                              "SimpleComponentVersion"
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "rules": {
+                            "added": [
+                              {
+                                "name": "VersionAtWybieraWersjęObowiązującąWMomencie",
+                                "name_locked": false,
+                                "ruleType": "Computation",
+                                "description": "SimpleComponent.VersionAt(timestamp) zwraca tę wersję, dla której validity.validFrom ≤ timestamp < validity.validTo. Strategia REJECT_OVERLAPPING gwarantuje, że trafia dokładnie JEDNA wersja. Brak wersji obowiązującej w danym momencie jest błędem stanu — silnik zwraca błąd zamiast zera czy domyślnej wartości.",
+                                "description_locked": false
+                              }
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "isPublic": false,
+                          "actor": null,
+                          "actor_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    },
+                    "rules": {
+                      "added": [
+                        {
+                          "name": "WersjeKomponentuNieMogąNakładaćSięWCzasie",
+                          "name_locked": false,
+                          "ruleType": "Consistency",
+                          "description": "Dla danego SimpleComponent przedziały Validity jego wersji NIE mogą się nakładać. Każdy znacznik czasu rozwiązuje się dokładnie do jednej wersji. Strategia REJECT_OVERLAPPING (decyzja #4 draftu) odrzuca wersję dodawaną na warstwie zarządzającej wersjami — silnik tego BC tylko czyta i zakłada, że invariant jest spełniony.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "CompositeComponent",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Węzeł wewnętrzny drzewa komponentów. Agreguje dzieci typu Component (mieszane SimpleComponent i CompositeComponent). Emisja kompozytu = SumOf emisji aktywnych dzieci (algebra ParameterValue z Pricing Archetype). Stałe pod-drzewa drzewa produktowego: product-footprint (root) → SumOf(materials, transport, packaging, cold-storage); materials → SumOf(raw-material, processing); transport → SumOf(supplier-to-warehouse, warehouse-to-customer, last-mile); cold-storage → SumOf(warehouse-refrigeration, transport-refrigeration, last-mile-cold-chain).",
+                    "description_locked": false,
+                    "implements": [
+                      "Component"
+                    ],
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "children",
+                          "name_locked": false,
+                          "type": "Component",
+                          "type_locked": false,
+                          "description": null,
+                          "description_locked": false,
+                          "collection": true
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    },
+                    "rules": {
+                      "added": [
+                        {
+                          "name": "KompozytSumujeEmisjeAktywnychDzieci",
+                          "name_locked": false,
+                          "ruleType": "Computation",
+                          "description": "Emisja CompositeComponent to suma emisji jego aktywnych dzieci (SumOf z algebry ParameterValue Pricing Archetype). Dziecko jest aktywne, gdy jego Validity obejmuje znacznik czasu obliczenia ORAZ jego Applicability jest spełniona w danym kontekście FootprintParameters. Dziecko nieaktywne NIE jest wliczane do sumy ani umieszczane jako podwęzeł w CompositeBreakdownNode.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "SimpleComponentVersion",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Niezmienny snapshot konfiguracji SimpleComponent w określonym przedziale czasu: który kalkulator (calculatorId), jaki rate (EmissionFactorRate), w jakim przedziale (Validity), kiedy zapisany (definedAt). definedAt to systemowy znacznik czasu zapisany w momencie utworzenia wersji — nigdy nie modyfikowalny i nie ustawiany przez warstwę aplikacji. Pole calculatorId w MVP zawsze ma wartość 'calc-emission' (jeden typ kalkulatora dla wszystkich liści — decyzja #2 draftu).",
+                    "description_locked": false,
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "calculatorId",
+                          "name_locked": false,
+                          "type": "String",
+                          "type_locked": false,
+                          "description": "W MVP zawsze 'calc-emission' — wskazuje na EmissionCalculator. Pole istnieje dla przyszłej rozszerzalności (jeśli pojawią się dodatkowe typy kalkulatorów).",
+                          "description_locked": false
+                        },
+                        {
+                          "name": "rate",
+                          "name_locked": false,
+                          "type": "EmissionFactorRate",
+                          "type_locked": false,
+                          "description": null,
+                          "description_locked": false
+                        },
+                        {
+                          "name": "validity",
+                          "name_locked": false,
+                          "type": "Validity",
+                          "type_locked": false,
+                          "description": null,
+                          "description_locked": false
+                        },
+                        {
+                          "name": "definedAt",
+                          "name_locked": false,
+                          "type": "Timestamp",
+                          "type_locked": false,
+                          "description": "Systemowy znacznik czasu utworzenia wersji. Nigdy nie modyfikowalny. Używany do audytu (kto i kiedy ustawił współczynnik) i jako tie-breaker przy ewentualnej kolizji wersji.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    },
+                    "rules": {
+                      "added": [
+                        {
+                          "name": "WersjaKomponentuJestNiezmienna",
+                          "name_locked": false,
+                          "ruleType": "Structure",
+                          "description": "Po utworzeniu SimpleComponentVersion jego pola — calculatorId, rate, validity, definedAt — nie mogą być modyfikowane. Każda zmiana współczynnika to NOWA wersja z nowym definedAt. Pole definedAt to systemowy znacznik czasu zapisany w momencie utworzenia wersji i nie może być nigdy edytowane.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "Validity",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Półotwarty przedział czasu [validFrom, validTo). Reprezentuje okres obowiązywania SimpleComponentVersion. Konstruktory pomocnicze: always() — [MIN_INSTANT, MAX_INSTANT); from(t) — [t, MAX_INSTANT); until(t) — [MIN_INSTANT, t); between(t1, t2) — [t1, t2). Predykat isValidAt(timestamp) zwraca Boolean (operacja nie modelowana jako formalny Behaviour ze względu na primitive output).",
+                    "description_locked": false,
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "validFrom",
+                          "name_locked": false,
+                          "type": "Timestamp",
+                          "type_locked": false,
+                          "description": "Pierwszy moment obowiązywania (włącznie). MIN_INSTANT dla przedziału otwartego od dołu.",
+                          "description_locked": false
+                        },
+                        {
+                          "name": "validTo",
+                          "name_locked": false,
+                          "type": "Timestamp",
+                          "type_locked": false,
+                          "description": "Pierwszy moment, w którym wersja przestaje obowiązywać (wyłącznie). MAX_INSTANT dla przedziału otwartego od góry.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    },
+                    "rules": {
+                      "added": [
+                        {
+                          "name": "WażnośćJestPółotwartymPrzedziałem",
+                          "name_locked": false,
+                          "ruleType": "Structure",
+                          "description": "Validity jest półotwartym przedziałem [validFrom, validTo): chwila validFrom jest momentem pierwszego obowiązywania (włącznie), a validTo jest momentem, w którym wersja przestaje obowiązywać (wyłącznie). Dla wersji otwartych od dołu lub od góry stosuje się wartości graniczne (MIN_INSTANT / MAX_INSTANT).",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "ComponentRepository",
+                    "name_locked": false,
+                    "type": "repository",
+                    "type_locked": false,
+                    "description": "Kolekcyjny dostęp do drzew komponentów. Punkt łączący FootprintCalculation z Product Catalog (mapping 1:1 productId → root CompositeComponent). Adapter implementujący ten interfejs może czytać dane z Product Catalog albo z lokalnego storage — wybór implementacji jest poza scope tego BC.",
+                    "description_locked": false,
+                    "behaviours": {
+                      "added": [
+                        {
+                          "name": "FindRootByProductId",
+                          "name_locked": false,
+                          "description": "Zwraca korzeń CompositeComponent drzewa komponentów dla danego ProductId. Mapping 1:1 (jeden produkt → jedno drzewo). Drzewo dla każdego typu produktu w MVP jest statyczne — struktura nie zmienia się w czasie. Jeśli produkt nie istnieje albo nie ma przypisanego drzewa, operacja zgłasza błąd (nie zwraca null) — to wskazuje na niespójność danych referencyjnych, nie na 'no-op'.",
+                          "description_locked": false,
+                          "type": "Query",
+                          "type_locked": false,
+                          "input": {
+                            "added": [
+                              "ProductId"
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "output": {
+                            "added": [
+                              "CompositeComponent"
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "isPublic": false,
+                          "actor": null,
+                          "actor_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  }
+                ],
+                "removed": [],
+                "modified": []
+              }
+            },
+            {
+              "name": "EmissionMeasurement",
+              "name_locked": false,
+              "description": "Czysta matematyka obliczania emisji i jednostki dziedzinowe (kg CO₂, rate, quantity, timestamp). EmissionCalculator jest jedynym typem kalkulatora — formuła rate × quantity dla wszystkich komponentów (decyzja #2 draftu). EmissionFactorPort jest portem domenowym do osobnego BC Emission Factor Management.",
+              "description_locked": false,
+              "buildingBlocks": {
+                "added": [
+                  {
+                    "name": "EmissionCalculator",
+                    "name_locked": false,
+                    "type": "domain_service",
+                    "type_locked": false,
+                    "description": "Pure function obliczająca emisję dla pojedynczego liścia: calculate(rate, quantity) → KgCO2 jako rate.value × quantity.value. Bezstanowa, deterministyczna, bez warunków biznesowych ani czasowych w środku — rate przychodzi rozwiązany z aktywnej wersji (SimpleComponentVersion przez VersionAt), quantity przychodzi z odpowiedniego pola FootprintParameters wskazanego przez SimpleComponent.quantitySource. Kalkulator nie wie, co liczy. Decyzja #2 draftu: jeden typ kalkulatora dla wszystkich 9 liści drzewa. Jeżeli w przyszłości pojawi się formuła nieliniowa, dojdzie osobny domain_service bez zmiany tego.",
+                    "description_locked": false,
+                    "behaviours": {
+                      "added": [
+                        {
+                          "name": "Calculate",
+                          "name_locked": false,
+                          "description": "Oblicza emisję dla pary (rate, quantity): zwraca KgCO2 którego value = rate.value × quantity.value. Operacja jest czysta i deterministyczna — żadnych warunków, żadnych ścieżek alternatywnych, żadnego dostępu do zegara, żadnego I/O. Spójność jednostek (czy mnożenie kgCO2/kg przez kg da kgCO2) jest zapewniana przez konfigurację SimpleComponent.quantitySource oraz definicję EmissionFactorRate.unitDescription — kalkulator sam jednostek nie waliduje. Wynik ma precyzję BigDecimal scale=6.",
+                          "description_locked": false,
+                          "type": "Query",
+                          "type_locked": false,
+                          "input": {
+                            "added": [
+                              "EmissionFactorRate",
+                              "Quantity"
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "output": {
+                            "added": [
+                              "KgCO2"
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "isPublic": false,
+                          "actor": null,
+                          "actor_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    },
+                    "rules": {
+                      "added": [
+                        {
+                          "name": "EmisjaJestIloczynemStawkiIKwantyfikacji",
+                          "name_locked": false,
+                          "ruleType": "Computation",
+                          "description": "EmissionCalculator.calculate(rate, quantity) zwraca kgCO2 = rate.value × quantity.value. Jednostka wyniku to kg CO₂. Wzór jest deterministyczny i nie ma żadnych warunków biznesowych ani czasowych w środku — rate przychodzi rozwiązany z aktywnej wersji, quantity przychodzi z parametrów obliczenia. Kalkulator nie wie, co liczy.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "EmissionFactorRate",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Współczynnik emisji — wartość liczbowa BigDecimal (scale=6) plus opis jednostki źródła (np. 'kgCO2/kg', 'kgCO2/km', 'kgCO2/kg/day'). Jednostka jest informacyjna — spójność z Quantity zapewniana przez konfigurację SimpleComponent. EmissionFactorRate jest niesiony przez SimpleComponentVersion.rate i przez SimpleBreakdownNode.emissionFactorUsed (audyt).",
+                    "description_locked": false,
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "value",
+                          "name_locked": false,
+                          "type": "Decimal",
+                          "type_locked": false,
+                          "description": "BigDecimal, scale=6.",
+                          "description_locked": false
+                        },
+                        {
+                          "name": "unitDescription",
+                          "name_locked": false,
+                          "type": "String",
+                          "type_locked": false,
+                          "description": "Informacyjny opis jednostki źródła (np. 'kgCO2/kg', 'kgCO2/km'). Nie wpływa na obliczenie.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "KgCO2",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Typ wyniku obliczenia emisji — analog Money w pricing archetype. Wartość liczbowa BigDecimal scale=6 + arytmetyka (sumowanie wymagane przez CompositeComponent). Wszystkie operacje arytmetyczne zwracają nowy KgCO2 (immutability).",
+                    "description_locked": false,
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "value",
+                          "name_locked": false,
+                          "type": "Decimal",
+                          "type_locked": false,
+                          "description": "BigDecimal, scale=6. Zawsze ≥ 0 dla produktowych footprintów (nie modelujemy ujemnych emisji w MVP).",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "Quantity",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Wartość aktywności wstrzykiwana do EmissionCalculator — masa materiału (kg), dystans transportu (km), dni storage'u, liczba sztuk opakowań. Jednostka informacyjna (unitDescription); spójność z EmissionFactorRate zapewnia konfiguracja SimpleComponent.quantitySource. Quantity jest niesiona przez wiele pól FootprintParameters (materialWeight, supplierDistance, ...).",
+                    "description_locked": false,
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "value",
+                          "name_locked": false,
+                          "type": "Decimal",
+                          "type_locked": false,
+                          "description": "BigDecimal, scale=6.",
+                          "description_locked": false
+                        },
+                        {
+                          "name": "unitDescription",
+                          "name_locked": false,
+                          "type": "String",
+                          "type_locked": false,
+                          "description": "Informacyjny opis jednostki (np. 'kg', 'km', 'days', 'units'). Nie wpływa na obliczenie.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "Timestamp",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Punkt w czasie używany do rozwiązywania wersji (VersionAt(timestamp)). UTC. Wartości graniczne MIN_INSTANT i MAX_INSTANT są zarezerwowane dla nieograniczonych przedziałów Validity (always(), from(t), until(t)).",
+                    "description_locked": false,
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "value",
+                          "name_locked": false,
+                          "type": "Instant",
+                          "type_locked": false,
+                          "description": "Reprezentacja chwili w UTC (w implementacji .NET odpowiednikiem jest DateTimeOffset / NodaTime.Instant).",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "EmissionFactorPort",
+                    "name_locked": false,
+                    "type": "external_integration",
+                    "type_locked": false,
+                    "description": "Port (interfejs domenowy) odczytujący wartości EmissionFactorRate z osobnego BC Emission Factor Management. Read-only — silnik FootprintCalculation nigdy nie zapisuje do modułu Factor. Implementację dostarcza warstwa adapterów; tryb testowy: in-memory. Port istnieje, bo Emission Factor Management jest OUT OF SCOPE (osobny moduł Resource Contention) — komunikacja w obu kierunkach przez ten interfejs.",
+                    "description_locked": false,
+                    "behaviours": {
+                      "added": [
+                        {
+                          "name": "GetActiveRate",
+                          "name_locked": false,
+                          "description": "Pobiera EmissionFactorRate dla danego ComponentId obowiązującą w danym Timestamp. Implementacja portu może wewnętrznie sięgać po SimpleComponent.versions (gdy oba moduły żyją w tym samym procesie i dzielą storage) albo po inne źródło (gdy moduł Emission Factor Management żyje osobno). Zwraca błąd, gdy ComponentId nie ma żadnej wersji obowiązującej w danym Timestamp — silnik nie zgaduje wartości domyślnej.",
+                          "description_locked": false,
+                          "type": "Query",
+                          "type_locked": false,
+                          "input": {
+                            "added": [
+                              "ComponentId",
+                              "Timestamp"
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "output": {
+                            "added": [
+                              "EmissionFactorRate"
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "isPublic": false,
+                          "actor": null,
+                          "actor_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  }
+                ],
+                "removed": [],
+                "modified": []
+              }
+            },
+            {
+              "name": "FootprintReporting",
+              "name_locked": false,
+              "description": "Publiczny interfejs modułu (FootprintFacade) plus struktura wyjściowa breakdown z polami audytowymi na każdym liściu. Dwa publiczne tryby obliczenia: CalculateTotalFootprint i CalculateUnitFootprint. FootprintParameters to kontrakt wejściowy — wszystkie wymiary kontekstu obliczenia.",
+              "description_locked": false,
+              "buildingBlocks": {
+                "added": [
+                  {
+                    "name": "ProductId",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Identyfikator produktu w katalogu. Wartość przekazywana przez warstwę aplikacji (z REST endpointu lub innego źródła wywołania) jako część FootprintParameters. Sam BC FootprintCalculation nie zarządza katalogiem produktów — to osobny BC Product Catalog (out of scope).",
+                    "description_locked": false,
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "value",
+                          "name_locked": false,
+                          "type": "String",
+                          "type_locked": false,
+                          "description": null,
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "EmissionScope",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Metadata Scope 1/2/3 protokołu GHG. Stała etykieta na definicji SimpleComponent — kopiowana do każdego SimpleBreakdownNode. Bez logiki, bez wpływu na obliczenie (decyzja #5 draftu). Wartości: 1 (direct emissions), 2 (purchased energy), 3 (value chain).",
+                    "description_locked": false,
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "level",
+                          "name_locked": false,
+                          "type": "Integer",
+                          "type_locked": false,
+                          "description": "1, 2 lub 3. Zgodnie z protokołem GHG.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "FootprintParameters",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Obiekt kontekstu obliczenia footprintu. Niesie wszystkie wartości potrzebne do (a) rozwiązania wersji (timestamp), (b) sprawdzenia warunków applicability (requiresRefrigeration), (c) zasilenia kalkulatorów (materialWeight, supplierDistance, destinationDistance, lastMileDistance, storageDays). Pola pochodzą z warstwy aplikacji: timestamp z 'asOf' query param, productId z URL, dystanse z rozwiązania nazwy destynacji ('Szczecin' → 570 km), reszta z Product Catalog.",
+                    "description_locked": false,
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "timestamp",
+                          "name_locked": false,
+                          "type": "Timestamp",
+                          "type_locked": false,
+                          "description": "Decyduje, które SimpleComponentVersion są aktywne przez versionAt(timestamp).",
+                          "description_locked": false
+                        },
+                        {
+                          "name": "productId",
+                          "name_locked": false,
+                          "type": "ProductId",
+                          "type_locked": false,
+                          "description": null,
+                          "description_locked": false
+                        },
+                        {
+                          "name": "materialWeight",
+                          "name_locked": false,
+                          "type": "Quantity",
+                          "type_locked": false,
+                          "description": "Masa materiału produktu w kg.",
+                          "description_locked": false
+                        },
+                        {
+                          "name": "supplierDistance",
+                          "name_locked": false,
+                          "type": "Quantity",
+                          "type_locked": false,
+                          "description": "Dystans od dostawcy do magazynu (km).",
+                          "description_locked": false
+                        },
+                        {
+                          "name": "destinationDistance",
+                          "name_locked": false,
+                          "type": "Quantity",
+                          "type_locked": false,
+                          "description": "Dystans od magazynu do destynacji (km), wyliczony przez warstwę aplikacji z nazwy miasta.",
+                          "description_locked": false
+                        },
+                        {
+                          "name": "lastMileDistance",
+                          "name_locked": false,
+                          "type": "Quantity",
+                          "type_locked": false,
+                          "description": "Ostatni odcinek do klienta (km).",
+                          "description_locked": false
+                        },
+                        {
+                          "name": "storageDays",
+                          "name_locked": false,
+                          "type": "Quantity",
+                          "type_locked": false,
+                          "description": "Dni przechowywania (dotyczy zwykle warehouse-refrigeration).",
+                          "description_locked": false
+                        },
+                        {
+                          "name": "requiresRefrigeration",
+                          "name_locked": false,
+                          "type": "Boolean",
+                          "type_locked": false,
+                          "description": "Flaga atrybutu produktu z Product Catalog. Kontroluje applicability pod-drzewa cold-storage.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "BreakdownNode",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Wspólna abstrakcja dla węzłów drzewa FootprintBreakdown. Każdy węzeł — liść (SimpleBreakdownNode) i kompozyt (CompositeBreakdownNode) — niesie ComponentId (identyfikator źródłowego komponentu) i wartość kgCO2 przypisaną do tego węzła. Polimorfizm pozwala CompositeBreakdownNode.children być heterogeniczną kolekcją.",
+                    "description_locked": false,
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "componentId",
+                          "name_locked": false,
+                          "type": "ComponentId",
+                          "type_locked": false,
+                          "description": null,
+                          "description_locked": false
+                        },
+                        {
+                          "name": "kgCO2",
+                          "name_locked": false,
+                          "type": "KgCO2",
+                          "type_locked": false,
+                          "description": null,
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    },
+                    "rules": {
+                      "added": [
+                        {
+                          "name": "KażdyWęzełBreakdownMaWartośćKgCO2",
+                          "name_locked": false,
+                          "ruleType": "Structure",
+                          "description": "Każdy węzeł w drzewie FootprintBreakdown — zarówno liść (SimpleBreakdownNode), jak i kompozyt (CompositeBreakdownNode) — niesie pole kgCO2 typu KgCO2 z wartością BigDecimal scale=6. Wartość kompozytu = suma kgCO2 aktywnych dzieci. Brak pola lub null jest niepoprawnym wynikiem.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "SimpleBreakdownNode",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Liść wyniku — odpowiednik aktywnego SimpleComponent w drzewie produktowym. Poza odziedziczonymi polami componentId i kgCO2 zawiera obowiązkową informację audytową: scope (kopia metadanych z SimpleComponent), emissionFactorUsed (wartość rate z aktywnej wersji) oraz factorValidFrom (validFrom aktywnej wersji). Audytor patrzący na ten węzeł widzi, jakim współczynnikiem policzono kgCO₂ i od kiedy obowiązuje (decyzja #6 draftu).",
+                    "description_locked": false,
+                    "implements": [
+                      "BreakdownNode"
+                    ],
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "scope",
+                          "name_locked": false,
+                          "type": "EmissionScope",
+                          "type_locked": false,
+                          "description": null,
+                          "description_locked": false
+                        },
+                        {
+                          "name": "emissionFactorUsed",
+                          "name_locked": false,
+                          "type": "EmissionFactorRate",
+                          "type_locked": false,
+                          "description": "Skopiowane z aktywnej SimpleComponentVersion.rate. Stała w obrębie wyniku — nie zmienia się po fakcie.",
+                          "description_locked": false
+                        },
+                        {
+                          "name": "factorValidFrom",
+                          "name_locked": false,
+                          "type": "Timestamp",
+                          "type_locked": false,
+                          "description": "Skopiowane z aktywnej SimpleComponentVersion.validity.validFrom.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    },
+                    "rules": {
+                      "added": [
+                        {
+                          "name": "KażdyLiśćBreakdownNiesieFactorAuditu",
+                          "name_locked": false,
+                          "ruleType": "Structure",
+                          "description": "Każdy SimpleBreakdownNode w wynikowym drzewie zawiera obowiązkowo emissionFactorUsed (wartość rate z aktywnej wersji) oraz factorValidFrom (chwila validFrom aktywnej wersji). To wymóg regulacyjny (decyzja #6 draftu) — audytor musi widzieć, jakim współczynnikiem policzono kgCO₂ i od kiedy obowiązywał.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    },
+                    "scenarios": {
+                      "added": [
+                        {
+                          "name": "LiśćBreakdownZawieraFactorIValidFrom",
+                          "name_locked": false,
+                          "description": "Weryfikuje regułę KażdyLiśćBreakdownNiesieFactorAuditu. Audytor patrzący na wynik widzi, jakim współczynnikiem policzono każdą gałąź i od kiedy obowiązuje.",
+                          "description_locked": false,
+                          "given": "Given produkt OFB-330\nAnd dla raw-material obowiązuje wersja z rate=0.9 kgCO2/kg i validFrom=2026-01-01",
+                          "given_locked": false,
+                          "when": "When CalculateTotalFootprint jest wywoływany z timestamp=2026-07-15",
+                          "when_locked": false,
+                          "then": "Then FootprintBreakdown.findLeaf('raw-material').emissionFactorUsed = 0.9\nAnd FootprintBreakdown.findLeaf('raw-material').factorValidFrom = 2026-01-01\nAnd to samo dla każdego liścia w drzewie",
+                          "then_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "CompositeBreakdownNode",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Węzeł wewnętrzny drzewa wyniku — agreguje dzieci. Pole kgCO2 (dziedziczone z BreakdownNode) zawiera sumę kgCO2 aktywnych dzieci. Dzieci pod-drzew nieaktywnych (np. cold-storage dla produktu niechłodzonego) są CAŁKOWICIE NIEOBECNE w kolekcji children — a nie obecne z kgCO2 = 0.",
+                    "description_locked": false,
+                    "implements": [
+                      "BreakdownNode"
+                    ],
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "children",
+                          "name_locked": false,
+                          "type": "BreakdownNode",
+                          "type_locked": false,
+                          "description": null,
+                          "description_locked": false,
+                          "collection": true
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "FootprintBreakdown",
+                    "name_locked": false,
+                    "type": "value_object",
+                    "type_locked": false,
+                    "description": "Wrapper na korzeń drzewa wyniku — top-level artefakt zwracany przez FootprintFacade. Trzyma root (zawsze typu CompositeBreakdownNode — korzeń to 'product-footprint') oraz total (kopia root.kgCO2 dla wygody konsumenta UI, niezmieniająca się względem root).",
+                    "description_locked": false,
+                    "properties": {
+                      "added": [
+                        {
+                          "name": "root",
+                          "name_locked": false,
+                          "type": "CompositeBreakdownNode",
+                          "type_locked": false,
+                          "description": null,
+                          "description_locked": false
+                        },
+                        {
+                          "name": "total",
+                          "name_locked": false,
+                          "type": "KgCO2",
+                          "type_locked": false,
+                          "description": "Kopia root.kgCO2 — dla bezpośredniego dostępu bez schodzenia do root. Wartości są zawsze spójne.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  },
+                  {
+                    "name": "FootprintFacade",
+                    "name_locked": false,
+                    "type": "application_service",
+                    "type_locked": false,
+                    "description": "Jedyny publiczny interfejs modułu FootprintCalculation. Bezstanowy. Orkiestruje: pobranie drzewa komponentów z ComponentRepository, rozwiązanie wersji przez SimpleComponent.VersionAt, sprawdzenie applicability, wywołanie EmissionCalculator dla każdego liścia, agregacja kompozytów, budowa FootprintBreakdown z polami audytowymi.",
+                    "description_locked": false,
+                    "behaviours": {
+                      "added": [
+                        {
+                          "name": "CalculateTotalFootprint",
+                          "name_locked": false,
+                          "description": "Główna operacja silnika. Realizuje scenariusz Data Flow z draftu (linie 114–162). Akceptuje FootprintParameters zawierające timestamp, productId i wszystkie wymiary kontekstu (materialWeight, supplierDistance, destinationDistance, lastMileDistance, storageDays, requiresRefrigeration). Pobiera korzeń drzewa komponentów dla produktu z ComponentRepository.FindRootByProductId, rekurencyjnie schodzi w dół drzewa: dla każdego SimpleComponent rozwiązuje aktywną wersję przez VersionAt(timestamp), sprawdza Applicability.isSatisfiedBy(parameters), woła EmissionCalculator.Calculate(rate, quantity) gdzie rate pochodzi z aktywnej wersji (lub równolegle z EmissionFactorPort.GetActiveRate) a quantity z odpowiedniego pola FootprintParameters wskazanego przez SimpleComponent.quantitySource. Dzieci nieaktywne są CAŁKOWICIE wykluczone z wynikowego drzewa (nie zerowane). Kompozytowe węzły sumują kgCO2 swoich aktywnych dzieci. Zwracany FootprintBreakdown zawiera root, total oraz pełne drzewo BreakdownNode z polami audytowymi (emissionFactorUsed, factorValidFrom) na każdym liściu — artefakt regulacyjny.\n\n```mermaid\nsequenceDiagram\n  participant Customer\n  participant Facade as FootprintFacade\n  participant Repo as ComponentRepository\n  participant Tree as CompositeComponent\n  participant Leaf as SimpleComponent\n  participant Port as EmissionFactorPort\n  participant Calc as EmissionCalculator\n  participant Result as FootprintBreakdown\n\n  Customer->>Facade: CalculateTotalFootprint(parameters)\n  Facade->>Repo: FindRootByProductId(parameters.productId)\n  Repo-->>Facade: root CompositeComponent\n  Facade->>Tree: walk(parameters)\n  loop for each child Component\n    Tree->>Tree: check applicability against parameters\n    alt applicable composite child\n      Tree->>Tree: recurse into composite child\n    else applicable leaf\n      Tree->>Leaf: VersionAt(parameters.timestamp)\n      Leaf-->>Tree: SimpleComponentVersion\n      Tree->>Port: GetActiveRate(leaf.id, parameters.timestamp)\n      Port-->>Tree: EmissionFactorRate\n      Tree->>Calc: Calculate(rate, quantity)\n      Calc-->>Tree: KgCO2\n    else not applicable\n      Tree->>Tree: skip child (exclude from breakdown)\n    end\n  end\n  Tree-->>Facade: BreakdownNode tree with kgCO2 at every node\n  Facade->>Result: wrap as FootprintBreakdown\n  Result-->>Customer: FootprintBreakdown (total + tree)\n```",
+                          "description_locked": false,
+                          "type": "Query",
+                          "type_locked": false,
+                          "input": {
+                            "added": [
+                              "FootprintParameters"
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "output": {
+                            "added": [
+                              "FootprintBreakdown"
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "usedBuildingBlocks": {
+                            "added": [
+                              "ComponentRepository",
+                              "CompositeComponent",
+                              "SimpleComponent",
+                              "Component",
+                              "Applicability",
+                              "SimpleComponentVersion",
+                              "EmissionFactorPort",
+                              "EmissionCalculator",
+                              "EmissionFactorRate",
+                              "Quantity",
+                              "KgCO2",
+                              "Timestamp",
+                              "FootprintBreakdown",
+                              "CompositeBreakdownNode",
+                              "SimpleBreakdownNode"
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "rules": {
+                            "added": [
+                              {
+                                "name": "NieaktywnyKompozytJestWykluczonyZBreakdown",
+                                "name_locked": false,
+                                "ruleType": "State change",
+                                "description": "Gdy CompositeComponent jest temporalnie ważny, ale jego Applicability.isSatisfiedBy(context) zwraca false w danym kontekście (np. requiresRefrigeration == false dla pod-drzewa cold-storage), całe pod-drzewo jest WYKLUCZONE z FootprintBreakdown — NIE wstawiamy węzła z kgCO2 = 0. Decyzja #5 / przykład #3 draftu: produkt niechłodzony NIE pokazuje sekcji cold-storage wcale.",
+                                "description_locked": false
+                              },
+                              {
+                                "name": "FootprintZAOkreślonegoMomentuUżywaWersjiZTamtejChwili",
+                                "name_locked": false,
+                                "ruleType": "Computation",
+                                "description": "CalculateTotalFootprint z timestamp = T używa dla każdego SimpleComponent wersji versionAt(T) — wersji, której Validity obejmuje T. Stary footprint policzony z timestamp = 2026-01-15 daje ten sam wynik dziś i za rok, ponieważ używa współczynników z wersji obowiązującej w styczniu 2026. Realizacja Success Criterion #2 (reprodukowalność historyczna). Brak dodatkowej logiki 'historii' — versionAt(timestamp) realizuje wszystko.",
+                                "description_locked": false
+                              }
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "scenarios": {
+                            "added": [
+                              {
+                                "name": "MrożoneOwoceSzczecinLato",
+                                "name_locked": false,
+                                "description": "Główny scenariusz happy-path z draftu (Example 1). Produkt wymagający chłodzenia, letni timestamp, pełny breakdown z aktywnym pod-drzewem cold-storage i letnimi współczynnikami.",
+                                "description_locked": false,
+                                "given": "Given produkt OFB-330 (Organic Frozen Berries 500g) ma materialWeightKg=0.5, supplierDistanceKm=2800, requiresRefrigeration=true\nAnd dla warehouse-refrigeration obowiązuje wersja letnia [2026-04-01, 2026-10-01) z rate = 0.080 kgCO2/kg/day\nAnd Customer wybrał destynację Szczecin (destinationDistanceKm=570, lastMileDistanceKm=15) i datę 2026-07-15",
+                                "given_locked": false,
+                                "when": "When Customer wywołuje CalculateTotalFootprint(timestamp=2026-07-15, productId=OFB-330, ...)",
+                                "when_locked": false,
+                                "then": "Then silnik rozwiązuje letnie wersje współczynników (validity zawiera 2026-07-15)\nAnd aktywuje pod-drzewo cold-storage (applicability spełniona)\nAnd zwraca FootprintBreakdown gdzie materials=1.35 + transport=1.88 + packaging=0.42 + cold-storage=1.72\nAnd total kgCO2 = 5.37",
+                                "then_locked": false
+                              },
+                              {
+                                "name": "MrożoneOwoceWarszawaZima",
+                                "name_locked": false,
+                                "description": "Wariant kontekstowy tego samego produktu — inna destynacja, inny timestamp, inne aktywne wersje współczynników. Demonstruje, że ten sam silnik z innymi parametrami zwraca inny wynik.",
+                                "description_locked": false,
+                                "given": "Given produkt OFB-330 z tymi samymi atrybutami\nAnd dla warehouse-refrigeration obowiązuje wersja zimowa [2026-01-01, 2026-04-01) z rate = 0.045 kgCO2/kg/day\nAnd Customer wybrał Warszawę (destinationDistanceKm=15, lastMileDistanceKm=5) i datę 2026-01-15",
+                                "given_locked": false,
+                                "when": "When Customer wywołuje CalculateTotalFootprint(timestamp=2026-01-15, productId=OFB-330, ...)",
+                                "when_locked": false,
+                                "then": "Then silnik rozwiązuje zimowe wersje współczynników\nAnd nadal aktywuje cold-storage (applicability nadal spełniona, mróz nie wpływa na flagę)\nAnd zwraca breakdown gdzie materials=1.35 + transport=0.48 + packaging=0.42 + cold-storage=0.65\nAnd total kgCO2 = 2.90",
+                                "then_locked": false
+                              },
+                              {
+                                "name": "ProduktNiechłodzonyNieZawieraColdStorage",
+                                "name_locked": false,
+                                "description": "Weryfikuje regułę NieaktywnyKompozytJestWykluczonyZBreakdown — pod-drzewo cold-storage jest CAŁKOWICIE NIEOBECNE w wyniku (nie jest pokazane jako kgCO2 = 0).",
+                                "description_locked": false,
+                                "given": "Given produkt CAW-042 (Classic Analog Watch) ma requiresRefrigeration=false\nAnd komponenty materials, transport, packaging są zawsze aktywne (AlwaysApplicable)",
+                                "given_locked": false,
+                                "when": "When Customer wywołuje CalculateTotalFootprint(timestamp=2026-07-15, productId=CAW-042, destinationDistanceKm=15, ...)",
+                                "when_locked": false,
+                                "then": "Then FootprintBreakdown zawiera tylko gałęzie materials, transport, packaging\nAnd gałąź cold-storage NIE WYSTĘPUJE w breakdown (nie jako kgCO2=0, lecz wcale)\nAnd total kgCO2 = 0.8",
+                                "then_locked": false
+                              },
+                              {
+                                "name": "ZmianaWspółczynnikaZachowujeStareWyniki",
+                                "name_locked": false,
+                                "description": "Weryfikuje regułę FootprintZAOkreślonegoMomentuUżywaWersjiZTamtejChwili. Po zmianie współczynnika transportu, obliczenie z timestampem sprzed zmiany nadal używa starego współczynnika; obliczenie po zmianie używa nowego.",
+                                "description_locked": false,
+                                "given": "Given dla SimpleComponent transport-leg istniała wersja v1 z rate=0.00058 kgCO2/kg/km i validity=[2026-01-01, 2026-03-15)\nAnd została dodana wersja v2 z rate=0.00062 kgCO2/kg/km i validity=[2026-03-15, MAX_INSTANT)",
+                                "given_locked": false,
+                                "when": "When CalculateTotalFootprint jest wywoływany z timestamp=2026-02-01\nAnd ponownie z timestamp=2026-04-01",
+                                "when_locked": false,
+                                "then": "Then versionAt(2026-02-01) zwraca v1 i wynik jest policzony z rate=0.00058\nAnd versionAt(2026-04-01) zwraca v2 i wynik jest policzony z rate=0.00062\nAnd oba wyniki są różne, ale każdy jest reprodukowalny w nieskończoność dla swojego timestampu",
+                                "then_locked": false
+                              }
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "qualityAttributes": {
+                            "added": [
+                              {
+                                "name": "Other:BreakdownAuditCompleteness",
+                                "name_locked": false,
+                                "type": "other",
+                                "description": "Każde wywołanie CalculateTotalFootprint musi zwrócić drzewo breakdown z (a) wartością kgCO2 na każdym węźle (liść i kompozyt), (b) polami emissionFactorUsed i factorValidFrom na każdym liściu. Mierzalne kryterium: walidacja outputu — żadne pole nie jest null na liściu; suma kgCO2 dzieci kompozytu = kgCO2 kompozytu (margines błędu = 0 dla BigDecimal scale=6).",
+                                "description_locked": false
+                              }
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "isPublic": true,
+                          "actor": "Customer",
+                          "actor_locked": false
+                        },
+                        {
+                          "name": "CalculateUnitFootprint",
+                          "name_locked": false,
+                          "description": "Pomocnicza operacja zwracająca breakdown przeliczony na jednostkę referencyjną (domyślnie 100 g materiału). Deleguje obliczenie do CalculateTotalFootprint a następnie skaluje każdy węzeł drzewa przez ten sam współczynnik (referenceUnit / materialWeight). Pełny breakdown ma identyczną STRUKTURĘ co Total (te same węzły, te same applicability), ale każde pole kgCO2 jest podzielone przez ten sam scale factor. Pola audytowe na liściach (emissionFactorUsed, factorValidFrom) pozostają NIEZMIENIONE — przeliczenie nie modyfikuje współczynników, tylko obrazuje proporcję na jednostkę. Stosowane w UI porównywania produktów, gdzie wartości muszą być porównywalne dla różnych wag.\n\n```mermaid\nsequenceDiagram\n  participant Customer\n  participant Facade as FootprintFacade\n  participant Total as CalculateTotalFootprint\n  participant Result as FootprintBreakdown\n\n  Customer->>Facade: CalculateUnitFootprint(parameters)\n  Facade->>Total: CalculateTotalFootprint(parameters)\n  Total-->>Facade: total FootprintBreakdown\n  Facade->>Facade: scale each KgCO2 by referenceUnit / materialWeight\n  Facade-->>Customer: per-unit FootprintBreakdown\n```",
+                          "description_locked": false,
+                          "type": "Query",
+                          "type_locked": false,
+                          "input": {
+                            "added": [
+                              "FootprintParameters"
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "output": {
+                            "added": [
+                              "FootprintBreakdown"
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "usedBuildingBlocks": {
+                            "added": [
+                              "FootprintParameters",
+                              "FootprintBreakdown",
+                              "CompositeBreakdownNode",
+                              "SimpleBreakdownNode",
+                              "KgCO2",
+                              "Quantity"
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "rules": {
+                            "added": [
+                              {
+                                "name": "UnitFootprintIsTotalScaledToReferenceUnit",
+                                "name_locked": false,
+                                "ruleType": "Computation",
+                                "description": "CalculateUnitFootprint(parameters) spełnia niezmiennik: unit_footprint × MaterialWeightKg × 10 == total, gdzie total to wynik CalculateTotalFootprint(parameters) dla tych samych parametrów. Wynika z definicji jednostki referencyjnej (100 g materiału — w jednym kilogramie mieści się 10 jednostek 100-gramowych) oraz z architektury fasady: operacja per-jednostkowa to widok skali na ten sam breakdown, nigdy niezależna ścieżka obliczeniowa. Niezmiennik łapie regresje typu „zoptymalizujmy unit pomijając breakdown i licząc od zera\".",
+                                "description_locked": false
+                              }
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "scenarios": {
+                            "added": [
+                              {
+                                "name": "CalculateUnitFootprint_PerHundredGrams_WithHalfKilogram",
+                                "name_locked": false,
+                                "description": "Pierwszy przypadek happy-path konwersji per-100g — okrągłe liczby fiksujące liniowość formuły total / (MaterialWeightKg * 10).",
+                                "description_locked": false,
+                                "given": "Given FootprintParameters z MaterialWeightKg = 0.5\nAnd CalculateTotalFootprint dla tych parametrów zwraca FootprintBreakdown.total = KgCo2(2.0)",
+                                "given_locked": false,
+                                "when": "When wywołane jest CalculateUnitFootprint(parameters)",
+                                "when_locked": false,
+                                "then": "Then zwrócony FootprintBreakdown.total = KgCo2(0.4)\nAnd każdy węzeł drzewa jest przeskalowany przez ten sam współczynnik (1 / (MaterialWeightKg × 10) = 0.2)",
+                                "then_locked": false
+                              },
+                              {
+                                "name": "CalculateUnitFootprint_PerHundredGrams_WithOneKilogram",
+                                "name_locked": false,
+                                "description": "Drugi przypadek happy-path z inną okrągłą wagą — razem z poprzednim scenariuszem przypina formułę przeciwko jednoparametrowym pomyłkom typu „dzielimy zawsze przez 5\".",
+                                "description_locked": false,
+                                "given": "Given FootprintParameters z MaterialWeightKg = 1.0\nAnd CalculateTotalFootprint dla tych parametrów zwraca FootprintBreakdown.total = KgCo2(5.0)",
+                                "given_locked": false,
+                                "when": "When wywołane jest CalculateUnitFootprint(parameters)",
+                                "when_locked": false,
+                                "then": "Then zwrócony FootprintBreakdown.total = KgCo2(0.5)\nAnd skala dla każdego węzła = 1 / (1.0 × 10) = 0.1",
+                                "then_locked": false
+                              },
+                              {
+                                "name": "CalculateUnitFootprint_PerHundredGrams_WithQuarterKilogramNonRound",
+                                "name_locked": false,
+                                "description": "Trzeci przypadek happy-path z mniej okrągłą wagą i totalem — chroni przed błędnymi implementacjami, które przypadkowo dzielą tylko przez 2 (lub inną pojedynczą stałą) i przepuszczają oba scenariusze z okrągłymi liczbami nie ujawniając błędu.",
+                                "description_locked": false,
+                                "given": "Given FootprintParameters z MaterialWeightKg = 0.25\nAnd CalculateTotalFootprint dla tych parametrów zwraca FootprintBreakdown.total = KgCo2(0.6)",
+                                "given_locked": false,
+                                "when": "When wywołane jest CalculateUnitFootprint(parameters)",
+                                "when_locked": false,
+                                "then": "Then zwrócony FootprintBreakdown.total = KgCo2(0.24)\nAnd skala = 1 / (0.25 × 10) = 0.4",
+                                "then_locked": false
+                              },
+                              {
+                                "name": "CalculateUnitFootprint_Throws_WhenMaterialWeightKgIsZero",
+                                "name_locked": false,
+                                "description": "Guard MaterialWeightKg = 0 — rzuca ArgumentException, bo dzielenie przez zero byłoby błędem stanu. Test asertuje również ParamName = \"parameters\" — nazwa parametru metody, nie wewnętrznego pola.",
+                                "description_locked": false,
+                                "given": "Given FootprintParameters z MaterialWeightKg = 0 i poprawnymi pozostałymi polami",
+                                "given_locked": false,
+                                "when": "When wywołane jest CalculateUnitFootprint(parameters)",
+                                "when_locked": false,
+                                "then": "Then rzucany jest ArgumentException\nAnd exception.ParamName = \"parameters\"\nAnd komunikat wyjątku wskazuje na nieprawidłową wartość MaterialWeightKg",
+                                "then_locked": false
+                              },
+                              {
+                                "name": "CalculateUnitFootprint_Throws_WhenMaterialWeightKgIsNegative",
+                                "name_locked": false,
+                                "description": "Guard MaterialWeightKg < 0 — rzuca ArgumentException. Oddzielny przypadek od zera, żeby wykluczyć implementację która przepuszcza wartości ujemne (np. guard `== 0` zamiast `<= 0`).",
+                                "description_locked": false,
+                                "given": "Given FootprintParameters z MaterialWeightKg = -0.5 i poprawnymi pozostałymi polami",
+                                "given_locked": false,
+                                "when": "When wywołane jest CalculateUnitFootprint(parameters)",
+                                "when_locked": false,
+                                "then": "Then rzucany jest ArgumentException\nAnd exception.ParamName = \"parameters\"",
+                                "then_locked": false
+                              },
+                              {
+                                "name": "CalculateUnitFootprint_Throws_WhenParametersAreNull",
+                                "name_locked": false,
+                                "description": "Guard null parameters — rzuca ArgumentNullException przez idiom ArgumentNullException.ThrowIfNull(parameters). Trywialny test, ale niezbędny, żeby refaktor kolejnego programisty nie cofnął się po cichu do NullReferenceException.",
+                                "description_locked": false,
+                                "given": "Given parameters = null",
+                                "given_locked": false,
+                                "when": "When wywołane jest CalculateUnitFootprint(null)",
+                                "when_locked": false,
+                                "then": "Then rzucany jest ArgumentNullException\nAnd exception.ParamName = \"parameters\"",
+                                "then_locked": false
+                              },
+                              {
+                                "name": "CalculateUnitFootprint_ReturnsZero_WhenBreakdownIsEmpty",
+                                "name_locked": false,
+                                "description": "Pusty breakdown: gdy wszystkie komponenty drzewa są nieaktywne dla danych parametrów, CalculateTotalFootprint zwraca KgCo2(0). CalculateUnitFootprint dzieli zero przez dodatnią wagę i nadal zwraca KgCo2(0) bez wyjątku — świadomy kontrakt, jawnie udokumentowany testem, żeby ktoś z dobrymi intencjami nie „naprawił\" tej ścieżki dodając guard na pusty breakdown.",
+                                "description_locked": false,
+                                "given": "Given FootprintParameters z MaterialWeightKg = 0.5 i kontekstem, w którym wszystkie komponenty są nieaktywne (np. requiresRefrigeration=false dla produktu bez chłodzenia, zerowe dystanse)\nAnd CalculateTotalFootprint dla tych parametrów zwraca FootprintBreakdown.total = KgCo2(0) z pustą listą children w root",
+                                "given_locked": false,
+                                "when": "When wywołane jest CalculateUnitFootprint(parameters)",
+                                "when_locked": false,
+                                "then": "Then zwrócony FootprintBreakdown.total = KgCo2(0)\nAnd root.children jest puste\nAnd nie jest rzucany żaden wyjątek",
+                                "then_locked": false
+                              },
+                              {
+                                "name": "CalculateUnitFootprint_PreservesPrecision_WithVerySmallMaterialWeight",
+                                "name_locked": false,
+                                "description": "Test brzegowy precyzji — bardzo małe MaterialWeightKg (0.0001 kg) przechodzi przez guard (> 0), ale wzbudza obawę o utratę precyzji. Implementacja używa typu decimal end-to-end (BigDecimal scale=6), więc wynik jest dokładny. Test działa również jako regression guard: gdy ktoś po cichu przełączy obliczenia na double, ten test spektakularnie pęknie.",
+                                "description_locked": false,
+                                "given": "Given FootprintParameters z MaterialWeightKg = 0.0001\nAnd CalculateTotalFootprint dla tych parametrów zwraca FootprintBreakdown.total = KgCo2(0.001)",
+                                "given_locked": false,
+                                "when": "When wywołane jest CalculateUnitFootprint(parameters)",
+                                "when_locked": false,
+                                "then": "Then zwrócony FootprintBreakdown.total = KgCo2(1.0)\nAnd wynik jest dokładny w precyzji decimal (BigDecimal scale=6) — brak akumulacji błędów reprezentacji binarnej",
+                                "then_locked": false
+                              },
+                              {
+                                "name": "CalculateUnitFootprint_IsConsistent_WithCalculateTotalFootprint",
+                                "name_locked": false,
+                                "description": "Weryfikuje regułę UnitFootprintIsTotalScaledToReferenceUnit. Dla tych samych parametrów wywołane są obie operacje fasady; wynik unit pomnożony przez MaterialWeightKg × 10 musi się równać total w granicach tolerancji typu decimal. Łapie klasę bugów typu „zoptymalizujmy unit pomijając breakdown i licząc od zera\", których pojedyncze testy CalculateUnitFootprint by nie wychwyciły.",
+                                "description_locked": false,
+                                "given": "Given FootprintParameters z nietrywialnymi wartościami wszystkich pól (MaterialWeightKg=0.5, supplierDistance>0, destinationDistance>0, requiresRefrigeration=true itp.)",
+                                "given_locked": false,
+                                "when": "When wywołane jest zarówno CalculateTotalFootprint(parameters) jak i CalculateUnitFootprint(parameters)\nAnd zliczany jest iloczyn unit.total × MaterialWeightKg × 10",
+                                "when_locked": false,
+                                "then": "Then iloczyn = total.total w granicach tolerancji decimal (BigDecimal scale=6)\nAnd zgodność trzyma się dla każdej pary węzłów drzewa — leaf po leafie, kompozyt po kompozycie",
+                                "then_locked": false
+                              }
+                            ],
+                            "removed": [],
+                            "modified": []
+                          },
+                          "isPublic": true,
+                          "actor": "Customer",
+                          "actor_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    },
+                    "qualityAttributes": {
+                      "added": [
+                        {
+                          "name": "Other:Determinism",
+                          "name_locked": false,
+                          "type": "other",
+                          "description": "FootprintFacade musi zwrócić bit-identyczny wynik dla bit-identycznych parametrów, niezależnie od momentu wywołania i bez efektów ubocznych. Mierzalne kryterium: dwa kolejne wywołania z tymi samymi FootprintParameters zwracają FootprintBreakdown o identycznych wartościach kgCO2 na każdym węźle i identycznych polach audytowych. Realizacja Success Criterion #1 draftu (pure function).",
+                          "description_locked": false
+                        },
+                        {
+                          "name": "Other:HistoricalReproducibility",
+                          "name_locked": false,
+                          "type": "other",
+                          "description": "Wywołanie obliczenia z timestamp w przeszłości musi używać wersji współczynników obowiązujących w tamtej chwili — niezależnie od ilości późniejszych zmian współczynników. Mierzalne kryterium: dla danego (parameters, timestamp) wynik nie zmienia się po dodaniu nowych wersji współczynników z validFrom > timestamp. Realizacja Success Criterion #2 draftu.",
+                          "description_locked": false
+                        }
+                      ],
+                      "removed": [],
+                      "modified": []
+                    }
+                  }
+                ],
+                "removed": [],
+                "modified": []
+              }
+            }
+          ],
+          "removed": [],
+          "modified": []
+        }
+      }
+    ],
+    "removed": [],
+    "modified": []
+  },
+  "implemented": true
+}

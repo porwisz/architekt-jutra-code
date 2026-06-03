@@ -1,0 +1,57 @@
+{
+  "id": "019e4fe0-21d7-7003-ae12-b8362becfd2f",
+  "parent_id": "019e4fe0-21d7-7000-afd8-170a38623712",
+  "title": "Edge cases obliczenia per-jednostkowego",
+  "title_locked": false,
+  "short_summary": "Dwa edge case'y, których przed PR nikt nie testował: zerowy total breakdown z dodatnią wagą oraz bardzo małe MaterialWeightKg. Zerowy total daje KgCo2(0) bez wyjątku — kontrakt udokumentowany jawnym testem. Mała waga 0.0001 kg z totalem 0.001 daje 1.0 per 100 g i działa jako regression guard przed cichą zmianą decimal → double.",
+  "short_summary_locked": false,
+  "long_summary": "CalculateUnitFootprint posiada dwie nieoczywiste ścieżki dotyczące wejść poprawnych zgodnie z guardami, ale skrajnych — żadna nie miała wcześniej pokrycia testami. Pierwsza: pusty breakdown. Gdy wszystkie komponenty drzewa są nieaktywne dla danych parametrów (np. produkt niewymagający chłodzenia z zerowymi dystansami), CalculateTotalFootprint zwraca KgCo2(0). Konwersja per-jednostkowa dzieli zero przez dodatnią wagę i zwraca KgCo2(0) bez wyjątku — jest to świadomie wybrane zachowanie kontraktowe; arytmetyka decimal pozwala na dzielenie zera przez liczbę dodatnią. Wymaga to jawnego testu z pustą kolekcją Components i dodatnią MaterialWeightKg, ponieważ ktoś z dobrymi intencjami mógłby później „naprawić\" tę ścieżkę dodając guard na pusty breakdown i nieświadomie złamać kontrakt. Druga ścieżka: bardzo małe MaterialWeightKg. Wartość 0.0001 przechodzi przez guard (> 0), ale powstaje obawa o utratę precyzji. Implementacja używa typu decimal od początku do końca, więc precyzja jest zachowana — test brzegowy MaterialWeightKg = 0.0001, total = 0.001 kg CO₂, oczekiwane 1.0 per 100 g potwierdza poprawność i jednocześnie działa jako regression guard: gdy ktoś po cichu przełączy obliczenia na double, ten test spektakularnie pęknie. Obie ścieżki dotyczą zachowania przy danych poprawnych ale rzadkich — kontrakt musi być jawnie udokumentowany w testach, ponieważ intuicja kolejnego programisty może go niezauważalnie zepsuć.",
+  "long_summary_locked": false,
+  "items": [
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 10,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 11,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 12,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 13,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 14,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    },
+    {
+      "type": "idea_unit_ref",
+      "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+      "turn_index": 15,
+      "idea_unit_index": 0,
+      "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+    }
+  ],
+  "reviewed": true,
+  "decisions_extracted": true,
+  "is_stale": false
+}

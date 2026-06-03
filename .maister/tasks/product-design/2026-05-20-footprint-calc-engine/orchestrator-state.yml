@@ -1,0 +1,58 @@
+orchestrator:
+  started_phase: completed
+  completed_phases: [phase-0, phase-1, phase-2, phase-3, phase-4, phase-5, phase-6, phase-7, phase-8]
+  next_phase: null
+  failed_phases: []
+  created: 2026-05-20T00:00:00Z
+  updated: 2026-05-20T00:00:00Z
+  task_path: .maister/tasks/product-design/2026-05-20-footprint-calc-engine
+
+task:
+  title: Footprint Calculation Engine
+  description: Design a carbon footprint calculation engine module (pure function) based on completed research at .maister/tasks/research/2026-04-17-footprint-calc-engine/
+  status: completed
+  tags: [sustainability, calculation-engine, pricing-archetype]
+  priority: null
+
+design_context:
+  design_characteristics:
+    is_greenfield: true
+    is_enhancement: false
+    is_ui_focused: true
+    is_backend: true
+    is_complex: true
+    is_simple: false
+  complexity_level: complex
+  collected_urls: []
+  research_topics: []
+  user_files_list:
+    - context/research-context/high-level-design.md
+  project_doc_paths:
+    - .maister/docs/project/tech-stack.md
+    - .maister/docs/project/architecture.md
+  research_reference:
+    path: .maister/tasks/research/2026-04-17-footprint-calc-engine
+    research_question: Carbon footprint calculation engine high-level design
+  refinement_iterations:
+    phase_2: 0
+    phase_3: 0
+    phase_5: 0
+    phase_6_sections: {}
+    phase_7: 0
+  visual_companion:
+    available: null
+    port: null
+    pid: null
+    fallback_to_ascii: false
+  phase_summaries:
+    context_synthesis: {summary: null, sources_count: 0}
+    problem_exploration: {problem_statement: null, constraints: [], success_criteria: []}
+    persona_exploration: {personas: [], user_journeys: []}
+    idea_generation: {alternatives_count: 0, summary: null}
+    idea_convergence: {selected_approach: null, trade_offs_accepted: [], key_decisions: []}
+    feature_specification: {spec_sections: {}, sections_count: 0}
+    visual_prototyping: {mockup_references: [], summary: null}
+    review_handoff: {brief_layers: [], summary: null}
+
+options:
+  visual_enabled: null

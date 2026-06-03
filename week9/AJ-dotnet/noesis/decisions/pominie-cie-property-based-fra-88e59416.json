@@ -1,0 +1,61 @@
+{
+  "id": "019e4fe9-26b8-7003-8314-7d1488e59416",
+  "topic_id": "019e4fe0-21d7-7005-a322-3e86ea029186",
+  "title": "Pominięcie property-based frameworka (FsCheck) na rzecz zwykłych XUnit cases",
+  "title_locked": false,
+  "status": "accepted",
+  "status_locked": false,
+  "context": {
+    "text": "Test niezmiennika spójności między CalculateUnitFootprint a CalculateTotalFootprint mógłby być w naturalny sposób wyrażony jako test property-based (FsCheck), ale ta dodatkowa złożoność narzędziowa nie jest niezbędna dla pojedynczego niezmiennika.",
+    "text_locked": false,
+    "supporting_content": [
+      {
+        "type": "idea_unit_ref",
+        "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+        "turn_index": 19,
+        "idea_unit_index": 0,
+        "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+      },
+      {
+        "type": "idea_unit_ref",
+        "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+        "turn_index": 20,
+        "idea_unit_index": 0,
+        "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+      }
+    ]
+  },
+  "decision": {
+    "text": "Pominąć framework property-based dla niezmiennika spójności; pisać zwykłe XUnit cases z jednym lub dwoma konkretnymi zestawami parametrów. Test można w przyszłości podnieść do FsCheck, jeśli framework zostanie wprowadzony do projektu z innych powodów.",
+    "text_locked": false,
+    "rationale": "Jeden niezmiennik nie uzasadnia dodawania nowej zależności i konfiguracji frameworka; konkretne przypadki testowe są wystarczające do wykrycia rozbieżności między obiema metodami.",
+    "rationale_locked": false,
+    "supporting_content": [
+      {
+        "type": "idea_unit_ref",
+        "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+        "turn_index": 24,
+        "idea_unit_index": 0,
+        "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+      }
+    ]
+  },
+  "alternative_options": [
+    {
+      "text": "Wprowadzić FsCheck i zbudować pełen property-based test generujący losowe FootprintParameters i asertujący niezmiennik na całej rodzinie wejść.",
+      "text_locked": false,
+      "rationale": "Odrzucone jako overkill dla pojedynczego niezmiennika — opcja pozostaje otwarta gdy framework pojawi się w projekcie z innych powodów.",
+      "rationale_locked": false,
+      "supporting_content": [
+        {
+          "type": "idea_unit_ref",
+          "conversation_id": "2be19efc-a3b5-817a-56ad-b838334ba698",
+          "turn_index": 19,
+          "idea_unit_index": 0,
+          "source_sha": "e28ac3c6d4790c03bd4b8b059e6d1ecdc2bb112191ddf0acede12693845e0d2d"
+        }
+      ]
+    }
+  ],
+  "is_stale": false
+}

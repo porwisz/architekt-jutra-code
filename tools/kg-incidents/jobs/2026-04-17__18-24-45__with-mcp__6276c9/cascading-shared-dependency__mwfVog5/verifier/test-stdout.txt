@@ -1,0 +1,1 @@
+PASS: feature gate warehouse-full-inventory-sync is off

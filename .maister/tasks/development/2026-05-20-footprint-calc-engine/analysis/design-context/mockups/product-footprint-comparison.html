@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Footprint Comparison — Product Design</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f5f5;
+      color: #222;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.5rem;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+    header h1 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+    #status { font-size: 0.8rem; color: #4a4; font-weight: 500; }
+    #status.disconnected { color: #a44; }
+
+    /* Screen navigation */
+    .screen-nav {
+      background: #fafafa;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 0.5rem 1.5rem;
+    }
+    .nav-screens {
+      display: flex;
+      gap: 0.25rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.25rem;
+    }
+    .nav-screen {
+      padding: 0.3rem 0.7rem;
+      border-radius: 4px;
+      text-decoration: none;
+      color: #555;
+      font-size: 0.8rem;
+      background: #eee;
+      transition: background 0.15s;
+    }
+    .nav-screen:hover { background: #ddd; }
+    .nav-screen.active { background: #333; color: #fff; }
+    .nav-prevnext {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.25rem;
+    }
+    .nav-arrow {
+      font-size: 0.8rem;
+      color: #0066cc;
+      text-decoration: none;
+    }
+    .nav-arrow:hover { text-decoration: underline; }
+
+    /* Gallery */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      padding: 1rem 0;
+    }
+    .gallery-card {
+      display: block;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.2s, transform 0.15s;
+    }
+    .gallery-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+    .gallery-card-title {
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #eee;
+      background: #fafafa;
+    }
+    .gallery-card-preview {
+      padding: 1rem;
+      max-height: 200px;
+      overflow: hidden;
+      position: relative;
+      font-size: 0.7rem;
+      transform: scale(0.8);
+      transform-origin: top left;
+      pointer-events: none;
+    }
+    .gallery-card-preview::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: linear-gradient(transparent, white);
+    }
+
+    /* Mockup content */
+    main {
+      max-width: 1200px;
+      margin: 1.5rem auto;
+      padding: 1.5rem;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      min-height: 300px;
+      position: relative;
+    }
+    .placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      color: #999;
+      font-size: 1rem;
+      text-align: center;
+      line-height: 1.8;
+    }
+    .annotation-tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 3px;
+      pointer-events: none;
+      max-width: 250px;
+      z-index: 1000;
+      line-height: 1.3;
+    }
+    .annotation-tooltip::before {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: 10px;
+      width: 8px;
+      height: 8px;
+      background: rgba(0, 0, 0, 0.75);
+      transform: rotate(45deg);
+    }
+
+    /* Interactive screen-to-screen navigation */
+    [data-screen] { cursor: pointer; }
+    [data-screen]:hover { outline: 2px solid #0066cc; outline-offset: 2px; border-radius: 2px; }
+
+    /* Annotation toggle */
+    .annotations-hidden .annotation-tooltip { display: none; }
+    #annotation-toggle {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      background: #f0f0f0;
+      cursor: pointer;
+      margin-left: 0.75rem;
+    }
+    #annotation-toggle:hover { background: #e0e0e0; }
+    #annotation-toggle.active { background: #333; color: #fff; border-color: #333; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Product Footprint Comparison</h1>
+    <div>
+      <button id="annotation-toggle" class="active" title="Toggle annotation tooltips">Annotations</button>
+      <span id="status">Connected</span>
+    </div>
+  </header>
+
+  <nav class="screen-nav"><div class="nav-screens"><a href="/screen/product-footprint-detail" class="nav-screen">Product Footprint Detail</a><a href="/screen/product-footprint-comparison" class="nav-screen active">Product Footprint Comparison</a></div><div class="nav-prevnext"><a href="/screen/product-footprint-detail" class="nav-arrow">&larr; Product Footprint Detail</a><span></span></div></nav>
+
+  <main id="mockup-container">
+    <style>.page{font-family:-apple-system,Segoe UI,sans-serif;color:#1f2937;background:#f7f8fa;min-height:100vh}.topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;background:#fff;border-bottom:1px solid #e5e7eb}.brand{font-weight:600;font-size:15px}.crumb{color:#6b7280;font-weight:400}.actions button{margin-left:8px}.btn-ghost{background:transparent;border:1px solid #d1d5db;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px}.btn-ghost:hover{background:#f3f4f6}.btn-primary{background:#10b981;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500}.compare{max-width:1400px;margin:0 auto;padding:24px}.compare-header h1{margin:0 0 4px;font-size:22px}.meta{display:flex;gap:24px;font-size:12px;color:#6b7280}.group-id code{font-family:monospace;background:#f3f4f6;padding:1px 6px;border-radius:3px;font-size:11px}.audit-hint{color:#10b981}.add-scenario{margin:16px 0;padding:8px 14px;background:transparent;border:1px dashed #9ca3af;border-radius:6px;cursor:pointer;color:#6b7280;font-size:13px}.add-scenario:hover{border-color:#10b981;color:#10b981}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}.scenario{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px}.scenario-head{display:flex;justify-content:space-between;align-items:start}.scenario-head h3{margin:0;font-size:14px}.close{background:transparent;border:none;color:#9ca3af;cursor:pointer;font-size:14px}.sc-controls{display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px solid #f3f4f6}.sc-controls label{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#6b7280}.sc-controls input,.sc-controls select{padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;width:160px}.total{padding:12px;background:#f9fafb;border-radius:6px;text-align:center;position:relative}.total .big{font-size:32px;font-weight:600;color:#1f2937}.total .unit{font-size:13px;color:#6b7280;margin-left:6px}.total.best{background:#ecfdf5;border:1px solid #a7f3d0}.total.best .big{color:#065f46}.delta{display:block;margin-top:4px;font-size:12px;color:#dc2626;font-weight:500}.total.best .delta{color:#065f46}.mini-bars{display:flex;flex-direction:column;gap:6px;font-size:12px}.mb{display:grid;grid-template-columns:90px 1fr 40px;align-items:center;gap:8px}.mb .bar{background:#10b981;height:10px;border-radius:3px}.mb b{font-family:monospace;text-align:right;font-weight:500}.delta-table{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:20px}.delta-table h3{margin:0 0 12px;font-size:15px}.delta-table table{width:100%;border-collapse:collapse;font-size:13px}.delta-table th{text-align:right;font-weight:500;color:#6b7280;padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:11px;text-transform:uppercase}.delta-table th:first-child{text-align:left}.delta-table td{padding:6px 12px;text-align:right;font-family:monospace}.delta-table td:first-child{text-align:left;font-family:inherit}.delta-table tr.total-row{border-top:2px solid #e5e7eb}.flat{color:#9ca3af}.down{color:#065f46}.up{color:#dc2626}.caveat{margin-top:12px;font-size:12px;color:#6b7280;font-style:italic}</style>
+<div id="mockup-content"><div class="page">
+  <header class="topbar">
+    <div class="brand">aj <span class="crumb">› Products › OFB-330 › Compare</span></div>
+    <div class="actions"><button class="btn-ghost" data-screen="product-footprint-detail">Back to detail</button><button class="btn-ghost" data-screen="product-footprint-historical-timeline">View history</button><button class="btn-primary">Save comparison</button></div>
+  </header>
+  <main class="compare">
+    <div class="compare-header">
+      <h1>Compare scenarios — OFB-330</h1>
+      <div class="meta"><span class="group-id">Comparison group: <code>4f8e-1c2d-...</code></span><span class="audit-hint">3 audit rows linked via X-Comparison-Group header</span></div>
+    </div>
+    <button class="add-scenario">+ Add scenario (up to 4)</button>
+    <div class="grid">
+      <div class="scenario">
+        <div class="scenario-head">
+          <h3>Scenario A — Summer / Szczecin</h3>
+          <button class="close">✕</button>
+        </div>
+        <div class="sc-controls">
+          <label>Date <input type="date" value="2026-07-15"></label>
+          <label>Destination <select><option>Szczecin (570 km)</option></select></label>
+          <label>Storage days <input type="number" value="14"></label>
+        </div>
+        <div class="total"><span class="big">5.37</span><span class="unit">kg CO₂</span></div>
+        <div class="mini-bars">
+          <div class="mb"><span>Materials</span><div class="bar" style="width:25%"></div><b>1.35</b></div>
+          <div class="mb"><span>Transport</span><div class="bar" style="width:35%"></div><b>1.88</b></div>
+          <div class="mb"><span>Packaging</span><div class="bar" style="width:8%"></div><b>0.42</b></div>
+          <div class="mb"><span>Cold storage</span><div class="bar" style="width:32%"></div><b>1.72</b></div>
+        </div>
+      </div>
+      <div class="scenario">
+        <div class="scenario-head">
+          <h3>Scenario B — Winter / Warsaw</h3>
+          <button class="close">✕</button>
+        </div>
+        <div class="sc-controls">
+          <label>Date <input type="date" value="2026-01-15"></label>
+          <label>Destination <select><option>Warsaw (15 km)</option></select></label>
+          <label>Storage days <input type="number" value="14"></label>
+        </div>
+        <div class="total best"><span class="big">2.90</span><span class="unit">kg CO₂</span><span class="delta">−46% vs A</span></div>
+        <div class="mini-bars">
+          <div class="mb"><span>Materials</span><div class="bar" style="width:25%"></div><b>1.35</b></div>
+          <div class="mb"><span>Transport</span><div class="bar" style="width:8%"></div><b>0.48</b></div>
+          <div class="mb"><span>Packaging</span><div class="bar" style="width:8%"></div><b>0.42</b></div>
+          <div class="mb"><span>Cold storage</span><div class="bar" style="width:12%"></div><b>0.65</b></div>
+        </div>
+      </div>
+      <div class="scenario">
+        <div class="scenario-head">
+          <h3>Scenario C — Summer / Kraków</h3>
+          <button class="close">✕</button>
+        </div>
+        <div class="sc-controls">
+          <label>Date <input type="date" value="2026-07-15"></label>
+          <label>Destination <select><option>Kraków (300 km)</option></select></label>
+          <label>Storage days <input type="number" value="14"></label>
+        </div>
+        <div class="total"><span class="big">4.05</span><span class="unit">kg CO₂</span><span class="delta">−25% vs A</span></div>
+        <div class="mini-bars">
+          <div class="mb"><span>Materials</span><div class="bar" style="width:25%"></div><b>1.35</b></div>
+          <div class="mb"><span>Transport</span><div class="bar" style="width:18%"></div><b>1.10</b></div>
+          <div class="mb"><span>Packaging</span><div class="bar" style="width:8%"></div><b>0.42</b></div>
+          <div class="mb"><span>Cold storage</span><div class="bar" style="width:22%"></div><b>1.18</b></div>
+        </div>
+      </div>
+    </div>
+    <section class="delta-table">
+      <h3>Component deltas vs Scenario A</h3>
+      <table>
+        <thead><tr><th>Component</th><th>A</th><th>B</th><th>Δ B</th><th>C</th><th>Δ C</th></tr></thead>
+        <tbody>
+          <tr><td>Materials</td><td>1.35</td><td>1.35</td><td class="flat">—</td><td>1.35</td><td class="flat">—</td></tr>
+          <tr><td>Transport</td><td>1.88</td><td>0.48</td><td class="down">−1.40</td><td>1.10</td><td class="down">−0.78</td></tr>
+          <tr><td>Packaging</td><td>0.42</td><td>0.42</td><td class="flat">—</td><td>0.42</td><td class="flat">—</td></tr>
+          <tr><td>Cold storage</td><td>1.72</td><td>0.65</td><td class="down">−1.07</td><td>1.18</td><td class="down">−0.54</td></tr>
+          <tr class="total-row"><td><b>Total</b></td><td><b>5.37</b></td><td><b>2.90</b></td><td class="down"><b>−2.47</b></td><td><b>4.05</b></td><td class="down"><b>−1.32</b></td></tr>
+        </tbody>
+      </table>
+      <p class="caveat">Note: scenario B uses winter emission factors (lower cold-chain coefficients valid Jan-Mar).</p>
+    </section>
+  </main>
+</div></div>
+  </main>
+
+  <script>
+    // SSE client for live refresh — navigates to /latest on new screen
+    const statusEl = document.getElementById('status');
+    const evtSource = new EventSource('/events');
+    evtSource.onmessage = function(e) {
+      if (e.data === 'refresh') window.location.href = '/latest';
+    };
+    evtSource.onopen = function() {
+      statusEl.textContent = 'Connected';
+      statusEl.className = '';
+    };
+    evtSource.onerror = function() {
+      statusEl.textContent = 'Reconnecting...';
+      statusEl.className = 'disconnected';
+    };
+
+    // Annotation overlay rendering
+    const annotations = [{"selector":".group-id code","note":"X-Comparison-Group header value — each scenario's audit row carries this ID"},{"selector":".total.best","note":"Best-of-N highlighted; computed client-side from N independent GET responses"},{"selector":".caveat","note":"Seasonal factor differences become visible without any explicit 'season' parameter — pure temporal versioning"}];
+    function renderAnnotations() {
+      const container = document.getElementById('mockup-container');
+      annotations.forEach(function(ann) {
+        if (!ann.selector) return;
+        const target = container.querySelector(ann.selector);
+        if (!target) return;
+        const text = ann.note || ann.text || '';
+        if (!text) return;
+        const rect = target.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const tooltip = document.createElement('div');
+        tooltip.className = 'annotation-tooltip';
+        tooltip.textContent = text;
+        tooltip.style.top = (rect.bottom - containerRect.top + 6) + 'px';
+        tooltip.style.left = (rect.left - containerRect.left) + 'px';
+        container.appendChild(tooltip);
+      });
+    }
+    if (annotations.length > 0) requestAnimationFrame(renderAnnotations);
+
+    // Annotation toggle with localStorage persistence
+    var toggleBtn = document.getElementById('annotation-toggle');
+    var container = document.getElementById('mockup-container');
+    var annotationsVisible = localStorage.getItem('annotations-visible') !== 'false'; // default: true
+    function updateToggle() {
+      if (annotationsVisible) {
+        container.classList.remove('annotations-hidden');
+        toggleBtn.classList.add('active');
+      } else {
+        container.classList.add('annotations-hidden');
+        toggleBtn.classList.remove('active');
+      }
+    }
+    updateToggle();
+    toggleBtn.addEventListener('click', function() {
+      annotationsVisible = !annotationsVisible;
+      localStorage.setItem('annotations-visible', annotationsVisible);
+      updateToggle();
+    });
+
+    // Screen-to-screen navigation: clicking elements with data-screen="slug" navigates to that screen
+    document.getElementById('mockup-container').addEventListener('click', function(e) {
+      var target = e.target.closest('[data-screen]');
+      if (target) {
+        e.preventDefault();
+        window.location.href = '/screen/' + target.getAttribute('data-screen');
+      }
+    });
+  </script>
+</body>
+</html>
