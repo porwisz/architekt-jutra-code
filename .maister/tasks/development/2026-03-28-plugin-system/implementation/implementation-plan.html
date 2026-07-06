@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Implementation Plan — Plugin System</title>
+<style>
+:root {
+  --bg:#f6f7f9; --surface:#fff; --border:#e2e5ea; --text:#1a1d23; --dim:#6b7280;
+  --accent:#4f46e5; --accent-soft:#eef2ff; --ok:#16a34a; --ok-soft:#ecfdf3;
+  --warn:#d97706; --warn-soft:#fffbeb; --crit:#dc2626; --crit-soft:#fef2f2;
+  --info:#2563eb; --info-soft:#eff6ff; --radius:10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#111418; --surface:#1a1f26; --border:#2e3640; --text:#e6e9ee; --dim:#9aa4b2;
+    --accent:#818cf8; --accent-soft:#26294a; --ok:#4ade80; --ok-soft:#11291a;
+    --warn:#fbbf24; --warn-soft:#2e2410; --crit:#f87171; --crit-soft:#321616;
+    --info:#60a5fa; --info-soft:#15233a; }
+}
+* { box-sizing:border-box; }
+body { margin:0 auto; max-width:1100px; padding:24px 20px 64px; background:var(--bg);
+  color:var(--text); font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+h1 { font-size:22px; letter-spacing:-.01em; } h2 { font-size:16px; margin-top:28px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px 18px; margin:14px 0; }
+.badge { display:inline-block; font-size:11px; font-weight:600; text-transform:uppercase;
+  letter-spacing:.04em; padding:2px 8px; border-radius:99px; background:var(--accent-soft); color:var(--accent); }
+.sev { display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase;
+  padding:1.5px 7px; border-radius:99px; margin-right:6px; }
+.sev.critical { background:var(--crit-soft); color:var(--crit); }
+.sev.warning  { background:var(--warn-soft); color:var(--warn); }
+.sev.info     { background:var(--info-soft); color:var(--info); }
+.pass { color:var(--ok); font-weight:600; } .fail { color:var(--crit); font-weight:600; }
+table { width:100%; border-collapse:collapse; }
+th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+th { font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--dim); }
+code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px;
+  background:var(--accent-soft); padding:1px 5px; border-radius:4px; }
+img.shot { max-width:100%; border:1px solid var(--border); border-radius:var(--radius); }
+details > summary { cursor:pointer; font-weight:600; }
+.crumbs { display:flex; gap:14px; font-size:13px; margin-bottom:18px; flex-wrap:wrap; }
+.crumbs a.md { margin-left:auto; color:var(--dim); }
+.crumbs .here { font-weight:650; color:var(--text); }
+.tiles { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; }
+.tile { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:10px 16px; text-align:center; min-width:90px; }
+.tile b { display:block; font-size:20px; letter-spacing:-.01em; }
+.tile span { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--dim); }
+.toc { font-size:13px; color:var(--dim); margin:10px 0 4px; }
+.toc a { margin:0 2px; }
+header .meta { color:var(--dim); font-size:13px; margin-top:4px; }
+.group { border-left:3px solid var(--border); }
+.g-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.g-head h2 { margin:0; }
+.g-num { display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:26px;
+  border-radius:50%; background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:13px; padding:0 6px; }
+.g-badge { display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.04em; padding:1.5px 8px; border-radius:99px; background:var(--info-soft); color:var(--info); }
+.dep { font-size:12px; color:var(--dim); }
+.steps { list-style:none; padding-left:2px; margin:10px 0 4px; }
+.step { padding:3px 0; }
+.step .sub { display:block; color:var(--dim); font-size:12.5px; margin:2px 0 2px 1.4em; }
+.chip { display:inline-block; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px;
+  background:var(--accent-soft); color:var(--accent); padding:1px 6px; border-radius:5px; margin:2px 3px 2px 0; }
+.ac { background:var(--ok-soft); border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-top:10px; }
+.ac ul { margin:6px 0 0; padding-left:18px; } .ac li { font-size:12.5px; }
+.flow { font-size:13px; line-height:1.9; }
+.flow .arr { color:var(--dim); }
+pre { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:12px 14px; overflow-x:auto; font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+.step.todo::before  { content:"☐ "; color:var(--dim); }
+.step.done::before  { content:"☑ "; color:var(--ok); }
+.step.done          { color:var(--dim); }
+.group.todo .g-badge::after { content:"pending"; }
+.group.done .g-badge::after { content:"✓ completed"; color:var(--ok); }
+</style>
+</head>
+<body>
+  <nav class="crumbs">
+    <a href="spec.html">Spec</a>
+    <span class="here">Implementation Plan</span>
+    <a href="../verification/implementation-verification.html">Implementation Verification</a>
+    <a href="../verification/e2e-verification-report.html">E2E Verification</a>
+    <a href="implementation-plan.md" target="_blank" rel="noopener" class="md">md twin ↗</a>
+  </nav>
+
+  <header>
+    <h1>Implementation Plan: Plugin System</h1>
+    <span class="badge">Implementation Plan</span>
+    <div class="meta">Generated 2026-06-24 · 7 task groups · test-driven, incremental execution</div>
+  </header>
+
+  <div class="tiles">
+    <div class="tile"><b>7</b><span>task groups</span></div>
+    <div class="tile"><b>52</b><span>total steps</span></div>
+    <div class="tile"><b>24–42</b><span>expected tests</span></div>
+    <div class="tile"><b>3</b><span>migrations</span></div>
+    <div class="tile"><b>1</b><span>demo plugin</span></div>
+  </div>
+
+  <section class="tldr card">
+    <h2 style="margin-top:0">Overview &amp; Execution Order</h2>
+    <p>Build a plugin system across database, registry API, plugin data/objects API, frontend infrastructure, extension points, SDK, and a demo Warehouse plugin. Each group is test-driven (2–8 tests written before implementation), run incrementally, and progressed by checking off steps.</p>
+    <div class="flow">
+      <span class="g-num">1</span> Database Layer
+      <span class="arr">→</span> <span class="g-num">2</span> Registry API
+      <span class="arr">→</span> <span class="g-num">3</span> Data &amp; Objects API
+      <br>
+      <span class="g-num">2</span> <span class="arr">→</span> <span class="g-num">4</span> Frontend Infrastructure
+      <span class="arr">; </span> <span class="g-num">3</span>+<span class="g-num">4</span> <span class="arr">→</span> <span class="g-num">5</span> Extension Points &amp; Pages
+      <br>
+      <span class="g-num">4</span>+<span class="g-num">5</span> <span class="arr">→</span> <span class="g-num">6</span> SDK &amp; Demo Plugin
+      <span class="arr">; </span> all <span class="arr">→</span> <span class="g-num">7</span> Test Review &amp; Gap Analysis
+    </div>
+    <div class="ac" style="background:var(--accent-soft)">
+      <strong>Key conventions</strong>
+      <ul>
+        <li><strong>Test-Driven</strong> — each group starts with 2–8 tests before implementation.</li>
+        <li><strong>Run Incrementally</strong> — only new tests after each group, not the entire suite.</li>
+        <li><strong>Reuse First</strong> — prioritize existing patterns (<code>ProductController</code>, <code>ProductService</code>, <code>api/products.ts</code>, <code>useProducts</code>, <code>NavItem</code>, migration YAML format).</li>
+        <li><strong>JSONB Pattern</strong> — establish on <code>Product.pluginData</code> first (Group 1), then replicate to <code>PluginDescriptor.manifest</code> and <code>PluginObject.data</code>.</li>
+        <li><strong>Old Plugin Files</strong> — delete <code>Plugin.java</code>, <code>PluginDescriptor.java</code> (interfaces), <code>PluginRegistry.java</code> in Group 1 before creating new entities.</li>
+        <li><strong>Separate SDK Build</strong> — <code>vite.sdk.config.ts</code> is mandatory; Vite library mode replaces app output format, cannot share config.</li>
+      </ul>
+    </div>
+  </section>
+
+  <nav class="toc">
+    Contents:
+    <a href="#g1">1 · Database</a> ·
+    <a href="#g2">2 · Registry API</a> ·
+    <a href="#g3">3 · Data &amp; Objects API</a> ·
+    <a href="#g4">4 · Frontend Infra</a> ·
+    <a href="#g5">5 · Extension Points</a> ·
+    <a href="#g6">6 · SDK &amp; Demo</a> ·
+    <a href="#g7">7 · Test Review</a> ·
+    <a href="#standards">Standards</a>
+  </nav>
+
+  <main>
+
+  <section data-group="1" class="group done card" id="g1">
+    <div class="g-head">
+      <span class="g-num">1</span><h2>Database Layer</h2>
+      <span class="g-badge"></span><span class="dep">Dependencies: None · 7 steps</span>
+    </div>
+    <ul class="steps">
+      <li data-step="1.1" class="step done">Write 4 integration tests for DB migrations and JSONB support
+        <span class="sub">PluginDescriptor round-trip · Product.pluginData round-trip · PluginObject round-trip · PluginObject unique-constraint conflict</span></li>
+      <li data-step="1.2" class="step done">Delete old plugin files; create migration 004: plugins table
+        <span class="sub">Drop <code>Plugin.java</code>, <code>PluginDescriptor.java</code>, <code>PluginRegistry.java</code>, <code>PluginRegistryTests.java</code> · <span class="chip">004-create-plugins-table.yaml</span> with JSONB <code>manifest</code> + rollback</span></li>
+      <li data-step="1.3" class="step done">Migration 005: add <code>pluginData</code> JSONB column to products
+        <span class="sub"><span class="chip">005-add-plugin-data-to-products.yaml</span> · nullable JSONB + GIN index · rollback drops column</span></li>
+      <li data-step="1.4" class="step done">Migration 006: plugin_objects table
+        <span class="sub"><span class="chip">006-create-plugin-objects-table.yaml</span> · seq <code>plugin_object_seq</code> · unique <code>(plugin_id, object_type, object_id)</code> · indexes + rollback</span></li>
+      <li data-step="1.5" class="step done">Create PluginDescriptor JPA entity
+        <span class="sub">String <code>@Id</code> (no BaseEntity), manual timestamps · <code>@JdbcTypeCode(SqlTypes.JSON)</code> manifest · business key equals/hashCode on id · <code>@Getter @Setter @NoArgsConstructor</code></span></li>
+      <li data-step="1.6" class="step done">Create PluginObject entity and modify Product entity
+        <span class="sub">PluginObject extends BaseEntity + <code>@SequenceGenerator</code> · add nullable <code>pluginData</code> to Product + <code>ProductResponse.from()</code></span></li>
+      <li data-step="1.7" class="step done">Create repositories; verify DB layer tests pass
+        <span class="sub"><code>PluginDescriptorRepository</code> · <code>PluginObjectRepository</code> with custom finders · run ONLY the 4 tests from 1.1</span></li>
+    </ul>
+    <div class="ac">
+      <strong>Acceptance Criteria</strong>
+      <ul>
+        <li>The 4 database tests pass.</li>
+        <li>All 3 migrations apply cleanly with TestContainers PostgreSQL.</li>
+        <li>JSONB round-trips work for all 3 entities.</li>
+        <li>Existing product tests still pass (<code>pluginData: null</code> is additive).</li>
+      </ul>
+    </div>
+  </section>
+
+  <section data-group="2" class="group done card" id="g2">
+    <div class="g-head">
+      <span class="g-num">2</span><h2>Plugin Registry API</h2>
+      <span class="g-badge"></span><span class="dep">Dependencies: Group 1 · 8 steps</span>
+    </div>
+    <ul class="steps">
+      <li data-step="2.1" class="step done">Write 6 integration tests for registry endpoints
+        <span class="sub">uploadManifest create / update · getPlugins returns only enabled · getPlugin returns extensionPoints · deletePlugin 204 · setPluginEnabled toggle</span></li>
+      <li data-step="2.2" class="step done">Add String-based constructor to <code>EntityNotFoundException</code>
+        <span class="sub">Overload <code>EntityNotFoundException(String entityName, String id)</code> for String pluginId lookups</span></li>
+      <li data-step="2.3" class="step done">Create PluginDescriptorService
+        <span class="sub">uploadManifest · findAllEnabled · findById · findEnabledOrThrow (reused) · delete · setEnabled · follow ProductService pattern</span></li>
+      <li data-step="2.4" class="step done">Create PluginResponse and PluginController
+        <span class="sub"><code>@RequestMapping("/api/plugins")</code> · PUT manifest · GET list · GET single · DELETE 204 · PATCH enabled · follow ProductController pattern</span></li>
+      <li data-step="2.5" class="step done">Ensure plugin registry tests pass
+        <span class="sub">Run ONLY the 6 tests from 2.1</span></li>
+    </ul>
+    <div class="ac">
+      <strong>Acceptance Criteria</strong>
+      <ul>
+        <li>The 6 plugin registry tests pass.</li>
+        <li>Manifest upload creates plugin with extracted fields and stored JSONB manifest.</li>
+        <li>Extension points extracted from manifest and included in responses.</li>
+        <li>PluginId validation returns 404 for missing/disabled plugins.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section data-group="3" class="group done card" id="g3">
+    <div class="g-head">
+      <span class="g-num">3</span><h2>Plugin Data and Objects API</h2>
+      <span class="g-badge"></span><span class="dep">Dependencies: Group 2 · 8 steps</span>
+    </div>
+    <ul class="steps">
+      <li data-step="3.1" class="step done">Write 6 integration tests for plugin data and objects
+        <span class="sub">namespaced data set/get/delete isolation · savePluginObject create/list-by-type/duplicate-key upsert</span></li>
+      <li data-step="3.2" class="step done">Create PluginDataService
+        <span class="sub">getData / setData / removeData on <code>pluginData->{pluginId}</code> node · each calls <code>findEnabledOrThrow</code> first</span></li>
+      <li data-step="3.3" class="step done">Create PluginDataController
+        <span class="sub"><code>/api/plugins/{pluginId}/products/{productId}/data</code> · GET / PUT 200 / DELETE 204</span></li>
+      <li data-step="3.4" class="step done">Create PluginObjectService
+        <span class="sub">list / get / save (upsert by unique key) / delete · each calls <code>findEnabledOrThrow</code> first</span></li>
+      <li data-step="3.5" class="step done">Create PluginObjectResponse and PluginObjectController
+        <span class="sub"><code>/api/plugins/{pluginId}/objects</code> · GET list / GET single / PUT upsert / DELETE 204</span></li>
+      <li data-step="3.6" class="step done">Server-side JSONB filtering on <code>GET /api/products</code>
+        <span class="sub"><code>pluginFilter={pluginId}:{jsonPath}:{operator}:{value}</code> · <code>PluginDataSpecification</code> · operators eq, gt, lt, exists, bool · composes with category/search filters</span></li>
+      <li data-step="3.7" class="step done">Ensure plugin data and objects tests pass
+        <span class="sub">Run ONLY the 6 tests from 3.1</span></li>
+    </ul>
+    <div class="ac">
+      <strong>Acceptance Criteria</strong>
+      <ul>
+        <li>The 6 plugin data/objects tests pass.</li>
+        <li>Plugin data is namespaced per pluginId within <code>Product.pluginData</code> JSONB.</li>
+        <li>Plugin objects respect the unique constraint <code>(pluginId, objectType, objectId)</code>.</li>
+        <li>JSONB filtering on <code>GET /api/products</code> works with <code>pluginFilter</code>.</li>
+        <li>All endpoints validate pluginId exists and is enabled (404 otherwise).</li>
+      </ul>
+    </div>
+  </section>
+
+  <section data-group="4" class="group done card" id="g4">
+    <div class="g-head">
+      <span class="g-num">4</span><h2>Frontend Infrastructure (Context, Iframe, Messaging)</h2>
+      <span class="g-badge"></span><span class="dep">Dependencies: Group 2 · 8 steps</span>
+    </div>
+    <ul class="steps">
+      <li data-step="4.1" class="step done">Write 5 tests for frontend plugin infrastructure
+        <span class="sub">PluginContext provides plugins · extension point resolution · message prefix validation · pluginFetch routing · filterChange fire-and-forget</span></li>
+      <li data-step="4.2" class="step done">Create plugin API module
+        <span class="sub"><span class="chip">src/api/plugins.ts</span> · interfaces + getPlugins/getPlugin/uploadManifest/deletePlugin/setPluginEnabled · follow <code>api/products.ts</code></span></li>
+      <li data-step="4.3" class="step done">Create PluginContext and PluginProvider
+        <span class="sub"><span class="chip">src/plugins/PluginContext.tsx</span> · getMenuItems / getProductDetailTabs / getProductListFilters · sort by priority · <code>usePluginContext()</code></span></li>
+      <li data-step="4.4" class="step done">Create iframe registry and PluginFrame component
+        <span class="sub"><span class="chip">src/plugins/iframeRegistry.ts</span> · <span class="chip">src/plugins/PluginFrame.tsx</span> · sandboxed iframe · sets <code>iframe.name</code> before <code>src</code> · preserved across re-renders</span></li>
+      <li data-step="4.5" class="step done">Create PluginMessageHandler
+        <span class="sub"><span class="chip">src/plugins/PluginMessageHandler.ts</span> · validate <code>aj.plugin.</code> prefix + origin · handler registry · pluginFetch security stripping (Req 11c) · filterChange fire-and-forget</span></li>
+      <li data-step="4.6" class="step done">Ensure frontend plugin infrastructure tests pass
+        <span class="sub">Run ONLY the 5 tests from 4.1</span></li>
+    </ul>
+    <div class="ac">
+      <strong>Acceptance Criteria</strong>
+      <ul>
+        <li>The 5 frontend infrastructure tests pass.</li>
+        <li>PluginContext fetches and provides plugins; extension point resolution collects and sorts contributions.</li>
+        <li>PluginFrame renders sandboxed iframe with correct context string.</li>
+        <li>PluginMessageHandler routes messages by type and validates origins.</li>
+        <li>pluginFetch strips credentials/mode/signal and restricts response headers (Req 11c).</li>
+        <li>filterChange is fire-and-forget (no response).</li>
+      </ul>
+    </div>
+  </section>
+
+  <section data-group="5" class="group done card" id="g5">
+    <div class="g-head">
+      <span class="g-num">5</span><h2>Frontend Extension Points and Pages</h2>
+      <span class="g-badge"></span><span class="dep">Dependencies: Groups 3 and 4 · 8 steps</span>
+    </div>
+    <ul class="steps">
+      <li data-step="5.1" class="step done">Write 5 tests for extension point rendering and pages
+        <span class="sub">Sidebar plugin items · ProductDetailPage tabs · ProductListPage filter iframes · plugin page route · PluginListPage table</span></li>
+      <li data-step="5.2" class="step done">Integrate PluginProvider into app and update Sidebar
+        <span class="sub">Wrap app root · hardcoded items + separator + plugin <code>menu.main</code> by priority · reuse <code>NavItem</code></span></li>
+      <li data-step="5.3" class="step done">Create ProductDetailPage
+        <span class="sub"><span class="chip">src/pages/ProductDetailPage.tsx</span> · route <code>/products/:id</code> · Details tab + plugin tabs as PluginFrame · iframe preserved across tab switches</span></li>
+      <li data-step="5.4" class="step done">Update ProductListPage with plugin filter extension point
+        <span class="sub">Render <code>product.list.filters</code> iframes · listen for filterChange · build <code>pluginFilter</code> query · rows link to <code>/products/:id</code></span></li>
+      <li data-step="5.5" class="step done">Add plugin page route and create management pages
+        <span class="sub">router: detail / list / form / edit / catch-all full-page frame · PluginListPage · PluginDetailPage · PluginFormPage</span></li>
+      <li data-step="5.6" class="step done">Ensure frontend extension point tests pass
+        <span class="sub">Run ONLY the 5 tests from 5.1</span></li>
+    </ul>
+    <div class="ac">
+      <strong>Acceptance Criteria</strong>
+      <ul>
+        <li>The 5 frontend extension point tests pass.</li>
+        <li>Sidebar shows plugin menu items below hardcoded items.</li>
+        <li>ProductDetailPage shows product info with plugin tabs; ProductListPage filters via <code>pluginFilter</code>.</li>
+        <li>Plugin page route renders full-page PluginFrame.</li>
+        <li>Management pages (list/detail/form) work end-to-end; product list items link to detail page.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section data-group="6" class="group done card" id="g6">
+    <div class="g-head">
+      <span class="g-num">6</span><h2>Plugin SDK and Demo Plugin</h2>
+      <span class="g-badge"></span><span class="dep">Dependencies: Groups 4 and 5 · 8 steps</span>
+    </div>
+    <ul class="steps">
+      <li data-step="6.1" class="step done">Write 4 tests for SDK core functionality
+        <span class="sub">context parsing from window.name · sendMessageAndWait correlation · 10s timeout · sendFireAndForget no pending promise</span></li>
+      <li data-step="6.2" class="step done">Create SDK types and context module
+        <span class="sub"><span class="chip">plugin-sdk/types.ts</span> · <span class="chip">plugin-sdk/context.ts</span> parses <code>window.name</code> → extensionPoint + JSON metadata</span></li>
+      <li data-step="6.3" class="step done">Create SDK messaging core
+        <span class="sub"><span class="chip">plugin-sdk/messaging.ts</span> · sendMessageAndWait (<code>aj.plugin.</code> + UUID, 10s timeout) · sendFireAndForget · responseId matching</span></li>
+      <li data-step="6.4" class="step done">Create SDK facades
+        <span class="sub"><span class="chip">host-app.ts</span> hostApp facade · <span class="chip">this-plugin.ts</span> thisPlugin facade (data + objects CRUD) · filterChange via sendFireAndForget</span></li>
+      <li data-step="6.5" class="step done">Create SDK entry point and Vite build config
+        <span class="sub"><span class="chip">plugin-sdk/index.ts</span> exports <code>PluginSDK</code> on window · <span class="chip">vite.sdk.config.ts</span> IIFE library mode → <code>dist/assets/plugin-sdk.js</code> · build scripts updated</span></li>
+      <li data-step="6.6" class="step done">Create demo Warehouse plugin
+        <span class="sub"><span class="chip">plugins/warehouse/</span> · Vite React app at :3001 · loads SDK from host · manifest declares all 3 extension points · main page, stock tab, stock filter</span></li>
+      <li data-step="6.7" class="step done">Ensure SDK tests pass
+        <span class="sub">Run ONLY the 4 tests from 6.1</span></li>
+    </ul>
+    <div class="ac">
+      <strong>Acceptance Criteria</strong>
+      <ul>
+        <li>The 4 SDK tests pass.</li>
+        <li>SDK builds to IIFE bundle at <code>dist/assets/plugin-sdk.js</code>.</li>
+        <li>SDK parses window.name context for all 3 extension point types.</li>
+        <li>Request/response correlation works with timeout; filterChange uses fire-and-forget.</li>
+        <li>Demo Warehouse plugin loads in iframe and communicates with host; manifest includes all 3 extension point types.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section data-group="7" class="group done card" id="g7">
+    <div class="g-head">
+      <span class="g-num">7</span><h2>Test Review and Gap Analysis</h2>
+      <span class="g-badge"></span><span class="dep">Dependencies: All previous groups (1–6) · 5 steps</span>
+    </div>
+    <ul class="steps">
+      <li data-step="7.1" class="step done">Review tests from previous groups (30 existing tests)
+        <span class="sub">G1: 4 · G2: 6 · G3: 6 · G4: 5 · G5: 5 · G6: 4</span></li>
+      <li data-step="7.2" class="step done">Analyze gaps for plugin system feature only
+        <span class="sub">pluginId validation · pluginFilter operators · existing product tests · empty-plugin states · SDK timeout/error paths</span></li>
+      <li data-step="7.3" class="step done">Write up to 10 additional strategic tests
+        <span class="sub">Backend: gt/exists operators, 404 paths, disabled exclusion · Frontend: iframe.name, invalid origin, no-plugins Details tab · SDK: fetch stripping, getContext productId</span></li>
+      <li data-step="7.4" class="step done">Run feature-specific tests only (expect 30–40 total)
+        <span class="sub">All backend plugin tests · all frontend plugin tests · all SDK tests · existing product tests (no regression)</span></li>
+    </ul>
+    <div class="ac">
+      <strong>Acceptance Criteria</strong>
+      <ul>
+        <li>All feature tests pass (30–40 total); no more than 10 additional tests added.</li>
+        <li>No regressions in existing product/category tests.</li>
+        <li>All JSONB filter operators tested; pluginId validation tested across endpoint groups.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="card" id="standards">
+    <h2 style="margin-top:0">Standards Compliance</h2>
+    <p>Follow standards from <code>.maister/docs/standards/</code>:</p>
+    <table>
+      <thead><tr><th>Standard</th><th>Applied to</th></tr></thead>
+      <tbody>
+        <tr><td><code>global/</code></td><td>Error handling, validation, coding style, minimal implementation, conventions, commenting</td></tr>
+        <tr><td><code>backend/models.md</code></td><td>BaseEntity for PluginObject, String PK divergence for PluginDescriptor, business key equals/hashCode, Lombok annotations</td></tr>
+        <tr><td><code>backend/api.md</code></td><td>RESTful endpoints, plural nouns, consistent naming, proper status codes</td></tr>
+        <tr><td><code>backend/migrations.md</code></td><td>Reversible migrations with rollback, focused changesets, proper indexing</td></tr>
+        <tr><td><code>backend/queries.md</code></td><td>Parameterized queries for JSONB filtering, proper indexing</td></tr>
+        <tr><td><code>testing/backend-testing.md</code></td><td>Integration-first with TestContainers, MockMvc + jsonPath, *Tests suffix, action_condition_expectedResult naming</td></tr>
+        <tr><td><code>testing/frontend-testing.md</code></td><td>Vitest, @testing-library/react, per-file renderWithProviders(), vi.mock()</td></tr>
+        <tr><td><code>frontend/components.md</code></td><td>Single responsibility (PluginFrame, PluginMessageHandler separate concerns)</td></tr>
+      </tbody>
+    </table>
+
+    <details style="margin-top:14px">
+      <summary>Execution order (full)</summary>
+      <pre>1. Group 1: Database Layer (7 steps) — migrations, entities, repositories
+2. Group 2: Plugin Registry API (8 steps, depends on 1) — registry service, controller, manifest upload
+3. Group 3: Plugin Data and Objects API (8 steps, depends on 2) — JSONB data ops, custom objects, JSONB filtering
+4. Group 4: Frontend Infrastructure (8 steps, depends on 2) — plugin context, iframe, messaging
+5. Group 5: Frontend Extension Points and Pages (8 steps, depends on 3 and 4) — sidebar, product detail, filters, routes, management pages
+6. Group 6: Plugin SDK and Demo Plugin (8 steps, depends on 4 and 5) — SDK build, facades, warehouse plugin
+7. Group 7: Test Review and Gap Analysis (5 steps, depends on all) — coverage review, gap filling</pre>
+    </details>
+
+    <details>
+      <summary>Notes</summary>
+      <ul>
+        <li><strong>Test-Driven</strong> — each group starts with 2–8 tests before implementation.</li>
+        <li><strong>Run Incrementally</strong> — only new tests after each group, not entire suite.</li>
+        <li><strong>Mark Progress</strong> — check off steps as completed.</li>
+        <li><strong>Reuse First</strong> — prioritize existing patterns (ProductController, ProductService, api/products.ts, useProducts hook, NavItem, migration YAML format).</li>
+        <li><strong>JSONB Pattern</strong> — establish on Product.pluginData first (Group 1), then replicate to PluginDescriptor.manifest and PluginObject.data.</li>
+        <li><strong>Old Plugin Files</strong> — delete Plugin.java, PluginDescriptor.java (interfaces), PluginRegistry.java in Group 1 before creating new entities.</li>
+        <li><strong>ProductDetailPage</strong> — new page required for product.detail.tabs extension point; does not exist in codebase.</li>
+        <li><strong>Separate SDK Build</strong> — vite.sdk.config.ts is mandatory; Vite library mode replaces app output format, cannot share config.</li>
+      </ul>
+    </details>
+  </section>
+
+  </main>
+</body>
+</html>

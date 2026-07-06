@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Implementation Verification — Plugin System</title>
+<style>
+:root {
+  --bg:#f6f7f9; --surface:#fff; --border:#e2e5ea; --text:#1a1d23; --dim:#6b7280;
+  --accent:#4f46e5; --accent-soft:#eef2ff; --ok:#16a34a; --ok-soft:#ecfdf3;
+  --warn:#d97706; --warn-soft:#fffbeb; --crit:#dc2626; --crit-soft:#fef2f2;
+  --info:#2563eb; --info-soft:#eff6ff; --radius:10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#111418; --surface:#1a1f26; --border:#2e3640; --text:#e6e9ee; --dim:#9aa4b2;
+    --accent:#818cf8; --accent-soft:#26294a; --ok:#4ade80; --ok-soft:#11291a;
+    --warn:#fbbf24; --warn-soft:#2e2410; --crit:#f87171; --crit-soft:#321616;
+    --info:#60a5fa; --info-soft:#15233a; }
+}
+* { box-sizing:border-box; }
+body { margin:0 auto; max-width:1100px; padding:24px 20px 64px; background:var(--bg);
+  color:var(--text); font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+h1 { font-size:22px; letter-spacing:-.01em; } h2 { font-size:16px; margin-top:28px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px 18px; margin:14px 0; }
+.badge { display:inline-block; font-size:11px; font-weight:600; text-transform:uppercase;
+  letter-spacing:.04em; padding:2px 8px; border-radius:99px; background:var(--accent-soft); color:var(--accent); }
+.sev { display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase;
+  padding:1.5px 7px; border-radius:99px; margin-right:6px; }
+.sev.critical { background:var(--crit-soft); color:var(--crit); }
+.sev.warning  { background:var(--warn-soft); color:var(--warn); }
+.sev.info     { background:var(--info-soft); color:var(--info); }
+.pass { color:var(--ok); font-weight:600; } .fail { color:var(--crit); font-weight:600; }
+table { width:100%; border-collapse:collapse; }
+th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+th { font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--dim); }
+code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px;
+  background:var(--accent-soft); padding:1px 5px; border-radius:4px; }
+img.shot { max-width:100%; border:1px solid var(--border); border-radius:var(--radius); }
+details > summary { cursor:pointer; font-weight:600; }
+.crumbs { display:flex; gap:14px; font-size:13px; margin-bottom:18px; flex-wrap:wrap; }
+.crumbs a.md { margin-left:auto; color:var(--dim); }
+.crumbs .here { font-weight:650; color:var(--text); }
+.tiles { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; }
+.tile { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:10px 16px; text-align:center; min-width:90px; }
+.tile b { display:block; font-size:20px; letter-spacing:-.01em; }
+.tile span { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--dim); }
+.verdict { border-radius:var(--radius); padding:14px 18px; margin:14px 0; font-weight:600;
+  background:var(--crit-soft); color:var(--crit); border:1px solid var(--crit); }
+.verdict span { display:block; font-weight:400; color:var(--text); margin-top:4px; font-size:13px; }
+.statset { display:inline-block; font-weight:600; }
+.statset.ok   { color:var(--ok); }
+.statset.bad  { color:var(--crit); }
+.statset.skip { color:var(--dim); }
+ul.fixlist { list-style:none; padding-left:0; }
+ul.fixlist li { padding:3px 0; }
+ul.fixlist li::before { content:"→ "; color:var(--accent); font-weight:700; }
+.loc { font-size:12px; color:var(--dim); }
+</style>
+</head>
+<body>
+  <nav class="crumbs">
+    <a href="../implementation/spec.html">Spec</a>
+    <a href="../implementation/implementation-plan.html">Implementation Plan</a>
+    <span class="here">Implementation Verification</span>
+    <a href="e2e-verification-report.html">E2E Verification</a>
+    <a href="implementation-verification.md" target="_blank" rel="noopener" class="md">md twin ↗</a>
+  </nav>
+
+  <header>
+    <h1>Implementation Verification Report</h1>
+    <span class="badge">Implementation Verification</span>
+    <span class="badge" style="background:var(--bg);color:var(--dim);">Plugin System</span>
+  </header>
+
+  <div class="tiles">
+    <div class="tile"><b class="fail">Failed</b><span>verdict</span></div>
+    <div class="tile"><b>4</b><span>critical</span></div>
+    <div class="tile"><b>8</b><span>warning</span></div>
+    <div class="tile"><b>4</b><span>info</span></div>
+    <div class="tile"><b>52/52</b><span>steps complete</span></div>
+  </div>
+
+  <section class="tldr">
+    <div class="verdict">
+      Overall Status: Failed
+      <span>Critical functional gaps and security issues must be resolved before merge.</span>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Executive Summary</h2>
+      <p>The plugin system implementation is <strong>structurally complete</strong> (52/52 steps, all tests pass) but has <strong>two critical functional gaps</strong> that prevent end-to-end plugin communication: the host message handler only implements 2 of 12 SDK message types, and the frontend never passes the <code>pluginFilter</code> parameter to the backend. Additionally, the code review found <strong>2 critical security issues</strong> (SQL injection in JSONB filtering, open proxy via <code>pluginFetch</code>).</p>
+    </div>
+  </section>
+
+  <p style="font-size:13px;color:var(--dim)">Contents:
+    <a href="#results">Verification Results</a> ·
+    <a href="#critical">Critical Issues</a> ·
+    <a href="#warnings">Warnings</a> ·
+    <a href="#info">Info Items</a> ·
+    <a href="#recommendations">Recommendations</a>
+  </p>
+
+  <main>
+    <section id="results">
+      <h2>Verification Results</h2>
+      <div class="card">
+        <table>
+          <thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead>
+          <tbody>
+            <tr><td>Implementation Plan</td><td class="pass">PASSED</td><td>52/52 steps complete (100%)</td></tr>
+            <tr><td>Test Suite</td><td><span class="statset skip">PASSED (skipped)</span></td><td>56/57 pass (1 pre-existing flaky), verified during implementation</td></tr>
+            <tr><td>Standards Compliance</td><td class="pass">PASSED</td><td>11/11 applicable standards followed</td></tr>
+            <tr><td>Documentation</td><td class="pass">PASSED</td><td>Work-log complete with all group entries</td></tr>
+            <tr><td>Code Review</td><td class="fail">FAILED</td><td>2 critical, 6 warning, 4 info</td></tr>
+            <tr><td>Pragmatic Review</td><td class="pass">PASSED</td><td>No over-engineering detected</td></tr>
+            <tr><td>Production Readiness</td><td class="fail">NO-GO</td><td>7 critical (security), 8 warning</td></tr>
+            <tr><td>Reality Check</td><td class="fail">FAILED</td><td>2 critical functional gaps</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="critical">
+      <h2>Critical Issues (Must Fix)</h2>
+
+      <h3 style="font-size:14px;color:var(--dim);text-transform:uppercase;letter-spacing:.04em;">Functional Gaps (Reality Check)</h3>
+
+      <div class="card">
+        <p><span class="sev critical">critical</span><strong>PluginMessageHandler only handles 2/12 message types</strong></p>
+        <p><code>pluginFetch</code> and <code>filterChange</code> are implemented, but <code>getProducts</code>, <code>getProduct</code>, <code>getPlugins</code>, <code>getData</code>, <code>setData</code>, <code>removeData</code>, <code>objectsList</code>, <code>objectsGet</code>, <code>objectsSave</code>, <code>objectsDelete</code> all return "Unknown message type" errors. The Warehouse demo renders in iframes but cannot read/write any data.</p>
+        <p class="loc">Location: <code>src/main/frontend/src/plugins/PluginMessageHandler.ts:137-139</code> &nbsp;·&nbsp; Fixable: Yes (~2 hours)</p>
+      </div>
+
+      <div class="card">
+        <p><span class="sev critical">critical</span><strong>Frontend never sends pluginFilter parameter</strong></p>
+        <p>Backend JSONB filtering works (tested), SDK fires <code>filterChange</code> correctly, but <code>useProducts</code> and <code>api/products.ts</code> don't accept or pass <code>pluginFilter</code>. Toggling "In Stock" has zero effect.</p>
+        <p class="loc">Location: <code>src/main/frontend/src/hooks/useProducts.ts</code>, <code>src/main/frontend/src/api/products.ts</code> &nbsp;·&nbsp; Fixable: Yes (~1 hour)</p>
+      </div>
+
+      <h3 style="font-size:14px;color:var(--dim);text-transform:uppercase;letter-spacing:.04em;">Security Issues (Code Review)</h3>
+
+      <div class="card">
+        <p><span class="sev critical">critical</span><strong>SQL injection in PluginDataSpecification</strong></p>
+        <p><code>pluginId</code> and <code>jsonPath</code> from HTTP <code>pluginFilter</code> query param are string-interpolated into raw SQL with only single-quote escaping. The <code>parse()</code> regex validates format but not content.</p>
+        <p class="loc">Location: <code>src/main/java/pl/devstyle/aj/product/PluginDataSpecification.java:29-78</code> &nbsp;·&nbsp; Fixable: Yes — add strict allowlist regex <code>^[a-zA-Z0-9_.-]+$</code> on pluginId/jsonPath</p>
+      </div>
+
+      <div class="card">
+        <p><span class="sev critical">critical</span><strong>Open proxy via pluginFetch</strong></p>
+        <p>Any plugin iframe can make requests to arbitrary URLs through the host's fetch, including internal services and cloud metadata endpoints.</p>
+        <p class="loc">Location: <code>src/main/frontend/src/plugins/PluginMessageHandler.ts:42-85</code> &nbsp;·&nbsp; Fixable: Yes — restrict to <code>/api/</code> prefix only</p>
+      </div>
+    </section>
+
+    <section id="warnings">
+      <h2>Warning Issues</h2>
+      <div class="card">
+        <table>
+          <thead><tr><th>#</th><th>Category</th><th>Description</th><th>Location</th><th>Fixable</th></tr></thead>
+          <tbody>
+            <tr><td>W1</td><td><span class="sev warning">warning</span>Security</td><td>No input validation on manifest upload</td><td><code>PluginDescriptorService.java</code></td><td>Yes</td></tr>
+            <tr><td>W2</td><td><span class="sev warning">warning</span>Security</td><td>No auth on any endpoint</td><td>All controllers</td><td>Yes (future)</td></tr>
+            <tr><td>W3</td><td><span class="sev warning">warning</span>Security</td><td>iframe sandbox allow-scripts+allow-same-origin</td><td><code>PluginFrame.tsx:31</code></td><td>Yes</td></tr>
+            <tr><td>W4</td><td><span class="sev warning">warning</span>Security</td><td>SDK response listener doesn't validate origin</td><td><code>messaging.ts:87-93</code></td><td>Yes</td></tr>
+            <tr><td>W5</td><td><span class="sev warning">warning</span>Quality</td><td>Demo plugin swallows async errors silently</td><td><code>WarehousePage.tsx</code></td><td>Yes</td></tr>
+            <tr><td>W6</td><td><span class="sev warning">warning</span>Security</td><td>Manifest url field not validated (javascript:)</td><td><code>PluginDescriptorService.java</code></td><td>Yes</td></tr>
+            <tr><td>W7</td><td><span class="sev warning">warning</span>Performance</td><td>No pagination on list endpoints</td><td><code>PluginObjectController.java</code></td><td>Yes</td></tr>
+            <tr><td>W8</td><td><span class="sev warning">warning</span>Resilience</td><td>IllegalArgumentException returns 500 not 400</td><td><code>GlobalExceptionHandler.java</code></td><td>Yes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="info">
+      <h2>Info Items</h2>
+      <div class="card">
+        <p><span class="sev info">info</span>PluginDescriptor uses entity ID in equals/hashCode (acceptable — natural key)</p>
+        <p><span class="sev info">info</span>Hardcoded hex colors bypass Chakra UI theme tokens</p>
+        <p><span class="sev info">info</span>9 SDK message types declared but not handled (covered by Critical #1)</p>
+        <p><span class="sev info">info</span>Module-level singleton state in iframeRegistry (acceptable for browser code)</p>
+      </div>
+    </section>
+
+    <section id="recommendations">
+      <h2>Recommendations</h2>
+
+      <div class="card">
+        <p><span class="badge" style="background:var(--crit-soft);color:var(--crit);">Immediate · Before merge</span></p>
+        <ul class="fixlist">
+          <li>Implement remaining 10 message handlers in <code>PluginMessageHandler.ts</code></li>
+          <li>Wire <code>pluginFilter</code> through <code>useProducts</code>/<code>api/products.ts</code></li>
+          <li>Add allowlist regex validation on pluginId/jsonPath in <code>PluginDataSpecification</code></li>
+          <li>Restrict <code>pluginFetch</code> to <code>/api/</code> prefix only</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <p><span class="badge" style="background:var(--warn-soft);color:var(--warn);">Short-term · Pre-alpha priorities</span></p>
+        <ul class="fixlist">
+          <li>Add origin validation in SDK response listener</li>
+          <li>Validate manifest URL as HTTP(S)</li>
+          <li>Add IllegalArgumentException handler (400 response)</li>
+          <li>Add error handling in demo plugin pages</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <p><span class="badge" style="background:var(--info-soft);color:var(--info);">Future · Before production</span></p>
+        <ul class="fixlist">
+          <li>Spring Security with role-based access</li>
+          <li>CORS configuration</li>
+          <li>Request size limits</li>
+          <li>Pagination on list endpoints</li>
+          <li>Structured logging</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

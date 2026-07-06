@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feature Spec — Plugin System</title>
+<style>
+:root {
+  --bg:#f6f7f9; --surface:#fff; --border:#e2e5ea; --text:#1a1d23; --dim:#6b7280;
+  --accent:#4f46e5; --accent-soft:#eef2ff; --ok:#16a34a; --ok-soft:#ecfdf3;
+  --warn:#d97706; --warn-soft:#fffbeb; --crit:#dc2626; --crit-soft:#fef2f2;
+  --info:#2563eb; --info-soft:#eff6ff; --radius:10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#111418; --surface:#1a1f26; --border:#2e3640; --text:#e6e9ee; --dim:#9aa4b2;
+    --accent:#818cf8; --accent-soft:#26294a; --ok:#4ade80; --ok-soft:#11291a;
+    --warn:#fbbf24; --warn-soft:#2e2410; --crit:#f87171; --crit-soft:#321616;
+    --info:#60a5fa; --info-soft:#15233a; }
+}
+* { box-sizing:border-box; }
+body { margin:0 auto; max-width:1100px; padding:24px 20px 64px; background:var(--bg);
+  color:var(--text); font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+h1 { font-size:22px; letter-spacing:-.01em; } h2 { font-size:16px; margin-top:28px; }
+h3 { font-size:13.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--dim); margin:18px 0 6px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px 18px; margin:14px 0; }
+.badge { display:inline-block; font-size:11px; font-weight:600; text-transform:uppercase;
+  letter-spacing:.04em; padding:2px 8px; border-radius:99px; background:var(--accent-soft); color:var(--accent); }
+.sev { display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase;
+  padding:1.5px 7px; border-radius:99px; margin-right:6px; }
+.sev.critical { background:var(--crit-soft); color:var(--crit); }
+.sev.warning  { background:var(--warn-soft); color:var(--warn); }
+.sev.info     { background:var(--info-soft); color:var(--info); }
+.pass { color:var(--ok); font-weight:600; } .fail { color:var(--crit); font-weight:600; }
+table { width:100%; border-collapse:collapse; }
+th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+th { font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--dim); }
+code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px;
+  background:var(--accent-soft); padding:1px 5px; border-radius:4px; }
+img.shot { max-width:100%; border:1px solid var(--border); border-radius:var(--radius); }
+details > summary { cursor:pointer; font-weight:600; }
+details { margin:10px 0; }
+pre { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:12px 14px; overflow:auto; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; }
+.crumbs { display:flex; gap:14px; font-size:13px; margin-bottom:18px; flex-wrap:wrap; }
+.crumbs a.md { margin-left:auto; color:var(--dim); }
+.crumbs .here { font-weight:650; color:var(--text); }
+.tiles { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; }
+.tile { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:10px 16px; text-align:center; min-width:90px; }
+.tile b { display:block; font-size:20px; letter-spacing:-.01em; }
+.tile span { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--dim); }
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media (max-width:720px){ .two-col { grid-template-columns:1fr; } }
+.scope ul { margin:4px 0 0; padding-left:18px; }
+.scope li { margin:3px 0; }
+.toc { font-size:13px; margin:10px 0 4px; color:var(--dim); }
+.rid { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--dim); white-space:nowrap; }
+.tag { display:inline-block; font-size:11px; padding:1px 7px; border-radius:99px; background:var(--info-soft); color:var(--info); margin-left:4px; }
+.tag.reuse { background:var(--ok-soft); color:var(--ok); }
+.tag.new { background:var(--accent-soft); color:var(--accent); }
+ul.checks { list-style:none; padding-left:0; }
+ul.checks li { padding:4px 0 4px 24px; position:relative; border-bottom:1px solid var(--border); }
+ul.checks li::before { content:"✓"; position:absolute; left:2px; color:var(--ok); font-weight:700; }
+</style>
+</head>
+<body>
+  <nav class="crumbs">
+    <span class="here">Spec</span>
+    <a href="implementation-plan.html">Implementation Plan</a>
+    <a href="../verification/implementation-verification.html">Implementation Verification</a>
+    <a href="../verification/e2e-verification-report.html">E2E Verification</a>
+    <a href="spec.md" target="_blank" rel="noopener" class="md">md twin ↗</a>
+  </nav>
+
+  <header>
+    <h1>Plugin System</h1>
+    <span class="badge">Feature Spec</span>
+    <span class="badge" style="background:var(--info-soft);color:var(--info)">Development</span>
+    <p style="color:var(--dim);margin:8px 0 0;">Iframe-isolated plugin system: standalone web-app plugins talk to the host via postMessage RPC, with backend REST APIs for plugin registry, product plugin data, and custom objects; frontend iframe hosting with extension points; an IIFE plugin SDK; and a demo Warehouse plugin.</p>
+  </header>
+
+  <div class="tiles">
+    <div class="tile"><b>28</b><span>requirements</span></div>
+    <div class="tile"><b>11</b><span>reusable components</span></div>
+    <div class="tile"><b>8</b><span>new components</span></div>
+    <div class="tile"><b>9</b><span>out of scope</span></div>
+    <div class="tile"><b>8</b><span>success criteria</span></div>
+  </div>
+
+  <section class="tldr card">
+    <h2 style="margin-top:0;">Goal &amp; Scope at a Glance</h2>
+    <p>Implement an iframe-isolated plugin system where plugins are standalone web apps communicating with the host via postMessage RPC — backend REST APIs (plugin registry / product plugin data / custom objects), frontend iframe hosting with extension-point rendering, an IIFE plugin SDK, and a demo Warehouse plugin.</p>
+    <div class="two-col scope">
+      <div class="card" style="background:var(--ok-soft);border-color:var(--ok);">
+        <h3 style="color:var(--ok);margin-top:0;">In Scope</h3>
+        <ul>
+          <li>Manifest-based plugin registry (JSONB) + enable/disable</li>
+          <li>Product plugin data &amp; custom objects CRUD (JSONB)</li>
+          <li>Server-side JSONB filtering via JPA Specification</li>
+          <li>Sandboxed iframe hosting + postMessage RPC layer</li>
+          <li>Extension points: menu, product-detail tabs, list filters</li>
+          <li>IIFE plugin SDK (hostApp + thisPlugin facades)</li>
+          <li>Demo Warehouse plugin (separate React app)</li>
+        </ul>
+      </div>
+      <div class="card" style="background:var(--crit-soft);border-color:var(--crit);">
+        <h3 style="color:var(--crit);margin-top:0;">Out of Scope</h3>
+        <ul>
+          <li>Authentication &amp; authorization</li>
+          <li>Plugin-to-plugin communication</li>
+          <li>Server-side plugin code (client-side only)</li>
+          <li>Plugin marketplace / dynamic install UI</li>
+          <li>Custom object schema validation (schemaless)</li>
+          <li>Advanced plugin mgmt (versioning, rollback, approvals)</li>
+          <li>FormData/File transfer via postMessage</li>
+          <li>Cursor pagination for custom objects; CORS config</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <nav class="toc">
+    <b>Contents:</b>
+    <a href="#stories">User Stories</a> ·
+    <a href="#requirements">Core Requirements</a> ·
+    <a href="#contracts">Key Contracts</a> ·
+    <a href="#components">Components</a> ·
+    <a href="#approach">Technical Approach</a> ·
+    <a href="#guidance">Implementation Guidance</a> ·
+    <a href="#success">Success Criteria</a>
+  </nav>
+
+  <main>
+    <h2 id="stories">User Stories</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>As a…</th><th>I want…</th><th>So that…</th></tr></thead>
+        <tbody>
+          <tr><td>Admin</td><td>upload a plugin manifest via API</td><td>the plugin is registered and its extension points appear automatically</td></tr>
+          <tr><td>User</td><td>plugin-contributed menu items in the sidebar</td><td>I can navigate to plugin pages</td></tr>
+          <tr><td>User</td><td>plugin tabs on the product detail page</td><td>I can view plugin-specific product info (e.g. stock levels)</td></tr>
+          <tr><td>User</td><td>plugin-contributed filters on the product list</td><td>I can filter products by plugin data (e.g. "in stock")</td></tr>
+          <tr><td>Plugin developer</td><td>a lightweight SDK with hostApp &amp; thisPlugin facades</td><td>I can interact with the host from within an iframe</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="requirements">Core Requirements</h2>
+
+    <h3>Backend <span class="badge">Req 1–9</span></h3>
+    <div class="card">
+      <table>
+        <thead><tr><th>#</th><th>Requirement</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td class="rid">1</td><td>Plugin manifest upload</td><td><code>PUT /api/plugins/{pluginId}/manifest</code> — create/update entry; extract <code>name</code>, <code>version</code>, <code>url</code>, <code>description</code>; store full manifest as JSONB.</td></tr>
+          <tr><td class="rid">2</td><td>Plugin registry endpoints</td><td><code>GET /api/plugins</code> (enabled list), <code>GET</code>/<code>DELETE /{pluginId}</code>, <code>PATCH /{pluginId}/enabled</code> with <code>{ "enabled": false }</code>. Response includes <code>extensionPoints</code> from manifest.</td></tr>
+          <tr><td class="rid">3</td><td>Product plugin data CRUD</td><td><code>GET/PUT/DELETE /api/plugins/{pluginId}/products/{productId}/data</code>. PUT replaces the plugin node in Product <code>pluginData</code> JSONB (namespaced by pluginId); GET returns only that node.</td></tr>
+          <tr><td class="rid">4</td><td>Plugin objects CRUD</td><td>List / single / create-replace / delete under <code>/{pluginId}/objects/{objectType}/{objectId}</code>. Unique constraint on <code>(pluginId, objectType, objectId)</code>.</td></tr>
+          <tr><td class="rid">5</td><td>Product entity modification</td><td>Add nullable <code>pluginData</code> JSONB column (<code>Map&lt;String,Object&gt;</code>) to <code>Product</code>; include in <code>ProductResponse</code>.</td></tr>
+          <tr><td class="rid">6</td><td>Server-side JSONB filtering</td><td>JPA Specification filtering on <code>GET /api/products</code> by plugin data content. Full contract below.</td></tr>
+          <tr><td class="rid">7</td><td>PluginId validation</td><td>All <code>/api/plugins/{pluginId}/...</code> endpoints validate pluginId exists &amp; enabled; return 404 otherwise.</td></tr>
+          <tr><td class="rid">8</td><td>Database migrations</td><td>Three Liquibase YAML migrations: <code>004</code> plugins table, <code>005</code> plugin_data column + GIN index, <code>006</code> plugin_objects table.</td></tr>
+          <tr><td class="rid">9</td><td>EntityNotFoundException overload</td><td>Add String-based constructor for plugin lookups by String pluginId.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Frontend <span class="badge">Req 10–17e</span></h3>
+    <div class="card">
+      <table>
+        <thead><tr><th>#</th><th>Requirement</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td class="rid">10</td><td>PluginFrame component</td><td>Sandboxed iframe (<code>allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads</code>); sets <code>iframe.name</code> before <code>src</code>; registry; cleanup on unmount; preserved across re-renders. Context formats below.</td></tr>
+          <tr><td class="rid">11</td><td>PluginMessageHandler</td><td>Global message listener: validates <code>"aj.plugin."</code> prefix &amp; origin, resolves pluginId by <code>event.source</code>, routes by type via handler registry, posts response/error.</td></tr>
+          <tr><td class="rid">11b</td><td>filterChange fire-and-forget</td><td>No response sent. SDK uses <code>sendFireAndForget()</code> (no pending promise/timeout). Host updates filter state + triggers product list refetch.</td></tr>
+          <tr><td class="rid">11c</td><td>pluginFetch security</td><td>Strips <code>credentials</code>/<code>mode</code>/<code>signal</code>; rejects URLs with <code>..</code>; adds <code>X-Requested-With: plugin-sdk</code>; returns only CORS-safelisted response headers.</td></tr>
+          <tr><td class="rid">12</td><td>Plugin context provider</td><td>React context fetches <code>GET /api/plugins</code> on mount; supplies list to Sidebar, router, product pages. Avoids prop drilling / redundant fetches.</td></tr>
+          <tr><td class="rid">13</td><td>Dynamic sidebar menu items</td><td>Hardcoded nav first (Products, Categories, Plugins), then <code>menu.main</code> items sorted by priority below a separator; link to <code>/plugins/{pluginId}{path}</code>.</td></tr>
+          <tr><td class="rid">14</td><td>Plugin page route</td><td><code>/plugins/:pluginId/*</code> catch-all renders full-page <code>PluginFrame</code> with matched URL + path suffix.</td></tr>
+          <tr><td class="rid">15</td><td>ProductDetailPage (new)</td><td>Read-only view at <code>/products/:id</code>; <code>product.detail.tabs</code> rendered as tabs (first "Details", then plugins). Product list rows become clickable.</td></tr>
+          <tr><td class="rid">16</td><td>Product list filter extension point</td><td>Inline <code>PluginFrame</code> per <code>product.list.filters</code> contribution; listens for <code>filterChange</code>; passes values to product query via server-side JSONB filter param.</td></tr>
+          <tr><td class="rid">17</td><td>Plugin API module</td><td><code>api/plugins.ts</code>: <code>getPlugins</code>, <code>getPlugin</code>, <code>uploadManifest</code>, <code>deletePlugin</code>, <code>setPluginEnabled</code>.</td></tr>
+          <tr><td class="rid">17b</td><td>PluginListPage</td><td>Admin page at <code>/plugins</code> — table of all plugins (incl. disabled): name, pluginId, version, URL, enabled. Rows link to detail; "Add Plugin" button.</td></tr>
+          <tr><td class="rid">17c</td><td>PluginDetailPage</td><td>Read-only <code>/plugins/:pluginId</code> — name, version, URL, description, enabled toggle, full manifest as formatted JSON; Edit button.</td></tr>
+          <tr><td class="rid">17d</td><td>PluginFormPage</td><td><code>/plugins/new</code> &amp; <code>/plugins/:pluginId/edit</code>. Fields: pluginId (immutable on edit), manifest JSON. Submits <code>PUT .../manifest</code>; shows validation errors.</td></tr>
+          <tr><td class="rid">17e</td><td>Sidebar nav item</td><td>Add hardcoded "Plugins" nav item below Categories.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Plugin SDK <span class="badge">Req 18–23</span></h3>
+    <div class="card">
+      <table>
+        <thead><tr><th>#</th><th>Requirement</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td class="rid">18</td><td>SDK source structure</td><td><code>frontend/src/plugin-sdk/</code>: <code>index.ts</code>, <code>messaging.ts</code>, <code>context.ts</code>, <code>host-app.ts</code>, <code>this-plugin.ts</code>, <code>types.ts</code>.</td></tr>
+          <tr><td class="rid">19</td><td>hostApp facade</td><td><code>getProducts(params?)</code>, <code>getProduct(productId)</code>, <code>getPlugins()</code>, <code>fetch(url, options?)</code> (generic proxy).</td></tr>
+          <tr><td class="rid">20</td><td>thisPlugin facade</td><td><code>getContext</code>, <code>getData</code>, <code>setData</code>, <code>removeData</code>, <code>objects.{list,get,save,delete}</code>.</td></tr>
+          <tr><td class="rid">21</td><td>Messaging core</td><td>Correlation via <code>"aj.plugin." + crypto.randomUUID()</code>; 10s timeout; pending <code>Map&lt;string,{resolve,reject}&gt;</code>; plus <code>sendFireAndForget(type, payload)</code> for one-way (filterChange).</td></tr>
+          <tr><td class="rid">22</td><td>Context initialization</td><td>Parse <code>window.name</code> → extensionPoint (prefix before <code>{</code>) + JSON metadata (pluginId, hostOrigin, optional productId).</td></tr>
+          <tr><td class="rid">23</td><td>SDK build</td><td>Separate <code>vite.sdk.config.ts</code> library mode; entry <code>src/plugin-sdk/index.ts</code>, name <code>PluginSDK</code>, format <code>iife</code> → <code>dist/assets/plugin-sdk.js</code>. <code>"build": "vite build &amp;&amp; vite build -c vite.sdk.config.ts"</code>. Served at <code>/assets/plugin-sdk.js</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Demo Warehouse Plugin <span class="badge">Req 24–28</span></h3>
+    <div class="card">
+      <table>
+        <thead><tr><th>#</th><th>Requirement</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td class="rid">24</td><td>Standalone React app</td><td>Minimal React app at <code>http://localhost:3001</code>; loads SDK from <code>http://localhost:8080/assets/plugin-sdk.js</code>.</td></tr>
+          <tr><td class="rid">25</td><td>Manifest</td><td>Declares <code>menu.main</code> (Warehouse, icon warehouse, path /), <code>product.detail.tabs</code> (Stock Info, /product-stock), <code>product.list.filters</code> (In Stock, /filter-stock, boolean).</td></tr>
+          <tr><td class="rid">26</td><td>Main page (/)</td><td>Lists warehouses stored as custom objects via <code>thisPlugin.objects</code>; demonstrates CRUD.</td></tr>
+          <tr><td class="rid">27</td><td>Product stock tab (/product-stock)</td><td>Reads <code>productId</code> from context; displays/edits stock via <code>thisPlugin.getData/setData</code>.</td></tr>
+          <tr><td class="rid">28</td><td>Stock filter (/filter-stock)</td><td>Boolean toggle; sends <code>filterChange</code> when toggled.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="contracts">Key Contracts</h2>
+
+    <details open>
+      <summary>JSONB filter flow (Req 6)</summary>
+      <div class="card">
+        <ol>
+          <li>Filter iframe sends <code>filterChange</code>: <code>{ type, requestId, payload: { value: true } }</code></li>
+          <li>Host handler receives it, sends <span class="sev warning">no response</span> (fire-and-forget, Req 11b), stores <code>{ pluginId, extensionLabel, value }</code> in filter state</li>
+          <li>Host builds query param: <code>GET /api/products?pluginFilter={pluginId}:{jsonPath}:{operator}:{value}</code> — e.g. <code>pluginFilter=warehouse:stock:gt:0</code></li>
+          <li>Backend parses it into a JPA Specification translating to: <code>plugin_data-&gt;'{pluginId}'-&gt;'{jsonPath}' {operator} '{value}'</code></li>
+        </ol>
+        <p><b>Supported operators:</b>
+          <span class="tag">eq</span><span class="tag">gt</span><span class="tag">lt</span><span class="tag">exists</span><span class="tag">bool</span>
+        </p>
+        <p>Manifest filter entry maps the filter value to the JSONB path via <code>filterKey</code>:
+          <code>{ "label": "In Stock", "path": "/filter-stock", "type": "boolean", "filterKey": "stock" }</code></p>
+      </div>
+    </details>
+
+    <details>
+      <summary>PluginFrame context formats (Req 10)</summary>
+      <pre>menu.main           → RENDER{"pluginId":"warehouse","pluginName":"Warehouse Management","hostOrigin":"http://localhost:8080"}
+product.detail.tabs → PRODUCT_DETAIL{"pluginId":"warehouse","pluginName":"Warehouse Management","hostOrigin":"http://localhost:8080","productId":42}
+product.list.filters→ FILTER{"pluginId":"warehouse","pluginName":"Warehouse Management","hostOrigin":"http://localhost:8080"}</pre>
+    </details>
+
+    <h2 id="components">Reusable Components</h2>
+
+    <h3>Existing code to leverage</h3>
+    <div class="card">
+      <table>
+        <thead><tr><th>Component</th><th>How it's reused</th></tr></thead>
+        <tbody>
+          <tr><td><code>BaseEntity</code> <span class="tag reuse">reuse</span></td><td><code>PluginObject</code> extends it for id/createdAt/updatedAt pattern.</td></tr>
+          <tr><td><code>ProductController</code> <span class="tag reuse">reuse</span></td><td>Pattern for all 3 new controllers (constructor injection, <code>@RequestMapping</code>, status conventions).</td></tr>
+          <tr><td><code>ProductService</code> <span class="tag reuse">reuse</span></td><td>Service-layer pattern: <code>@Transactional</code>, <code>EntityNotFoundException</code>, record DTO mapping.</td></tr>
+          <tr><td><code>ProductResponse</code> <span class="tag reuse">reuse</span></td><td>Record DTO with <code>static from()</code> — all new response records follow this.</td></tr>
+          <tr><td><code>GlobalExceptionHandler</code> <span class="tag reuse">reuse</span></td><td>Already handles the exception types; needs String-based <code>EntityNotFoundException</code> ctor.</td></tr>
+          <tr><td><code>api/client.ts</code> <span class="tag reuse">reuse</span></td><td>Fetch wrapper reused by PluginMessageHandler proxy and new <code>api/plugins.ts</code>.</td></tr>
+          <tr><td><code>api/products.ts</code> <span class="tag reuse">reuse</span></td><td>Pattern for <code>api/plugins.ts</code> (typed interfaces + client wrappers).</td></tr>
+          <tr><td><code>useProducts</code> hook <span class="tag reuse">reuse</span></td><td>Pattern for <code>usePlugins</code> (useState + useCallback + useEffect).</td></tr>
+          <tr><td><code>Sidebar</code> NavItem <span class="tag reuse">reuse</span></td><td>Reused directly for plugin menu items (accepts <code>to</code>, <code>label</code>, <code>icon</code>).</td></tr>
+          <tr><td>Migration YAML format <span class="tag reuse">reuse</span></td><td><code>002-create-products-table.yaml</code> is template for all 3 new migrations.</td></tr>
+          <tr><td><code>db.changelog-master.yaml</code> <span class="tag reuse">reuse</span></td><td><code>includeAll</code> on <code>./2026</code> auto-includes new migration files.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>New components required</h3>
+    <div class="card">
+      <table>
+        <thead><tr><th>Component</th><th>Why it's new</th></tr></thead>
+        <tbody>
+          <tr><td><code>PluginDescriptor</code> entity <span class="tag new">new</span></td><td>String PK (pluginId natural key), not SEQUENCE; manual createdAt/updatedAt; first JSONB usage.</td></tr>
+          <tr><td><code>PluginObject</code> entity <span class="tag new">new</span></td><td>Extends BaseEntity but adds JSONB <code>data</code> + multi-column unique constraint (new patterns).</td></tr>
+          <tr><td><code>PluginDataService</code> <span class="tag new">new</span></td><td>JSONB node manipulation (namespaced key within Product.pluginData); no precedent; needs <code>@JdbcTypeCode(SqlTypes.JSON)</code>.</td></tr>
+          <tr><td><code>PluginFrame</code> component <span class="tag new">new</span></td><td>Iframe hosting w/ sandbox, <code>window.name</code> context, iframe registry. No iframe usage exists.</td></tr>
+          <tr><td><code>PluginMessageHandler</code> <span class="tag new">new</span></td><td>postMessage layer; handler registry with type-based routing. None exists.</td></tr>
+          <tr><td>Plugin SDK <span class="tag new">new</span></td><td>Standalone TS library → IIFE; no library-mode Vite build exists; six new files.</td></tr>
+          <tr><td><code>ProductDetailPage</code> <span class="tag new">new</span></td><td>No read-only product detail view exists (only list and form).</td></tr>
+          <tr><td>JPA Specification (JSONB filter) <span class="tag new">new</span></td><td>No JPA Specification usage exists; needed for server-side content filtering.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="approach">Technical Approach</h2>
+    <div class="two-col">
+      <div class="card">
+        <h3 style="margin-top:0;">Backend architecture</h3>
+        <ul class="scope">
+          <li>Package: <code>pl.devstyle.aj.core.plugin</code> (replaces 3 existing files).</li>
+          <li><code>PluginDescriptor</code> String <code>@Id</code>, no BaseEntity; <code>PluginObject</code> extends BaseEntity w/ <code>@SequenceGenerator</code>; both use <code>@JdbcTypeCode(SqlTypes.JSON)</code>.</li>
+          <li>Services: descriptor (manifest upsert), data (JSONB node ops on Product), object (CRUD + unique constraint).</li>
+          <li>Validation via <code>findEnabledOrThrow(pluginId)</code> first.</li>
+          <li>Product gains nullable <code>pluginData</code>; existing endpoints return it as-is (null when absent).</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">Frontend architecture</h3>
+        <ul class="scope">
+          <li><code>PluginProvider</code> at root; fetches plugins once; <code>usePluginContext()</code>.</li>
+          <li>Iframe registry <code>Map&lt;HTMLIFrameElement, PluginInfo&gt;</code> resolves identity from <code>event.source</code>.</li>
+          <li>Message handler registered once; handler registry pattern; proxies via <code>api/client.ts</code>.</li>
+          <li>Extension resolution helpers: <code>getMenuItems()</code>, <code>getProductDetailTabs()</code>, <code>getProductListFilters()</code> (sorted by priority).</li>
+          <li>Routing: <code>/products/:id</code> + <code>/plugins/:pluginId/*</code> catch-all.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">Plugin SDK architecture</h3>
+        <ul class="scope">
+          <li>IIFE bundle exposes <code>window.PluginSDK = { hostApp, thisPlugin }</code>.</li>
+          <li>Reads <code>window.name</code>; parses context; all messages sent to <code>hostOrigin</code>.</li>
+          <li>Each call → unique requestId, pending promise, <code>window.parent.postMessage</code>; listener matches <code>responseId</code>.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">Demo plugin architecture</h3>
+        <ul class="scope">
+          <li>Separate Vite React app (e.g. <code>plugins/warehouse/</code>): index.html + one component routing <code>/</code>, <code>/product-stock</code>, <code>/filter-stock</code>.</li>
+          <li>No shared code with host — loads SDK via script tag from host URL.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 id="guidance">Implementation Guidance</h2>
+    <details>
+      <summary>Testing approach</summary>
+      <div class="card">
+        <ul class="scope">
+          <li>2–8 focused tests per implementation step group; verification runs only new tests.</li>
+          <li><b>Backend:</b> TestContainers integration tests following <code>ProductIntegrationTests</code>; explicit JSONB round-trips; manifest upsert (create+update); plugin data &amp; object CRUD; unique constraint; pluginId validation (404 for missing/disabled).</li>
+          <li><b>Frontend:</b> message handler with mock <code>MessageEvent</code>; plugin context loading; extension point resolution.</li>
+          <li><b>SDK:</b> unit tests for context parsing &amp; message correlation.</li>
+        </ul>
+      </div>
+    </details>
+    <details>
+      <summary>Standards compliance</summary>
+      <div class="card">
+        <table>
+          <thead><tr><th>Standard</th><th>Application</th></tr></thead>
+          <tbody>
+            <tr><td>Entity modeling</td><td><code>PluginObject</code> follows BaseEntity; <code>PluginDescriptor</code> diverges (String PK) with justification; business-key equals/hashCode; <code>@Getter @Setter @NoArgsConstructor</code>; LAZY fetch.</td></tr>
+            <tr><td>API design</td><td>RESTful endpoints, plural nouns, proper methods/status codes.</td></tr>
+            <tr><td>Database migrations</td><td>Reversible with rollback blocks, focused changesets, proper indexing.</td></tr>
+            <tr><td>Error handling</td><td>Reuse <code>EntityNotFoundException</code> + <code>GlobalExceptionHandler</code>; fail-fast pluginId validation.</td></tr>
+            <tr><td>Minimal implementation</td><td>No speculative features; no custom-object schema validation; no plugin management UI beyond list/detail/form.</td></tr>
+            <tr><td>Backend testing</td><td>Integration-first, MockMvc + jsonPath, <code>*Tests</code> suffix, <code>action_condition_expectedResult</code>.</td></tr>
+            <tr><td>Frontend components</td><td>Single responsibility (PluginFrame vs PluginMessageHandler separate), clear interfaces.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <h2 id="success">Success Criteria</h2>
+    <div class="card">
+      <ul class="checks">
+        <li>Manifest uploaded via <code>PUT /api/plugins/warehouse/manifest</code> creates an entry and its extension points appear (sidebar item, product detail tab, list filter).</li>
+        <li>Warehouse demo plugin renders in an iframe; reads products via SDK; reads/writes plugin data; CRUDs custom objects.</li>
+        <li>Product detail page shows plugin-contributed tabs with working iframes.</li>
+        <li>Product list shows plugin filter iframes; toggling "In Stock" filters the list via server-side JSONB query.</li>
+        <li>Plugin SDK served at <code>/assets/plugin-sdk.js</code> works when loaded by external plugin apps.</li>
+        <li>All existing functionality (product/category CRUD, navigation) continues unchanged.</li>
+        <li>Adding <code>pluginData: null</code> to product responses does not break existing consumers.</li>
+        <li>Integration tests pass for all backend endpoints with TestContainers.</li>
+      </ul>
+    </div>
+  </main>
+</body>
+</html>
